@@ -1,0 +1,171 @@
+<!doctype html>
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8"/>
+
+		<title>
+			Captive: para-phonic poly-diso
+		</title>
+
+		<style>
+			:root {
+				--color: rgba(255, 255, 255, 0.7);
+				--color--highlight: rgb(50,100,50);
+
+				--color--voice--0: rgb(39, 129, 168);
+				--color--voice--1: rgb(58, 117, 91); 
+				--color--voice--2: rgb(237, 217, 130);
+				--color--voice--3: rgb(168, 39, 39);
+
+				--fontSize: 30px;
+				--fontSize--small: 14px;
+			}
+
+			* {
+				margin: 0;
+				padding: 0;
+			}
+
+			html {
+				overflow-x: hidden;
+
+				background-color: black;
+				color: var(--color);
+
+				font-family: 'Helvetica';
+				font-weight: bold;
+				font-size: var(--fontSize);
+				line-height: 1.2em;
+				
+				-webkit-font-smoothing: antialiased;
+				-moz-osx-font-smoothing: grayscale;
+			}
+
+			#wrapper {
+				display:flex;
+				flex-direction: column;
+
+				position: absolute;
+				top: 50%;
+				left: 50%;
+
+				transform: translate(-50%, -50%);
+
+				height: 100%;
+				width: 100%;
+
+				text-align: center;
+			}
+
+			svg, #svg_label {
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				
+				transform: translate(-50%, -50%);
+			}
+
+			ellipse {
+				fill: none;
+				/* stroke: var(--color--highlight); */
+				stroke-width: 1;
+			}
+
+			.item {
+				flex-grow: 0;
+			}
+
+			.item:first-child {
+				padding-top: 20px;
+			}
+
+			.item:last-child {
+				padding-bottom: 20px;
+			}
+
+			.item--center {
+				flex-grow: 1;
+				position: relative;
+			}
+
+			@keyframes color_change {
+				0% { 
+					color: var(--color--voice--0);
+					stroke: var(--color--voice--0);
+				}
+
+				33% {
+					color: var(--color--voice--1);
+					stroke: var(--color--voice--1);
+				}
+				
+				66% {
+					color: var(--color--voice--2); 
+					stroke: var(--color--voice--2);
+				}
+
+				100% {
+					color: var(--color--voice--3);
+					stroke: var(--color--voice--3);
+				}
+			}
+
+			.proceed {
+				color: var(--color--highlight);
+
+				animation-name: color_change;
+				animation-duration: 4s;
+				animation-iteration-count: infinite;
+				animation-direction: alternate;
+			}
+
+			.small {
+				font-size: var(--fontSize--small);
+			}
+
+			a {
+				color: inherit;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div id="wrapper">
+			<div class="item">
+				para-phonic
+				<br/>
+				poly-diso
+				<br/>
+				<br/>
+				enable
+				<br/>
+				sound to
+				<br/>
+				maximum
+				<br/>
+				volume
+			</div>
+
+			
+				<div class="item--center proceed">
+					<a href="/">
+					 <svg height="201" width="201">
+						  <ellipse cx="101" cy="101" rx="100" ry="100"/>
+					</svg>
+
+					<span id="svg_label">
+						join the
+						<br/>
+						choir
+					</span>
+					</a>
+				</div>
+			
+
+			<div class="item small">
+				the small museum ● credits
+			</div>
+		</div>
+	</body>
+</html>
