@@ -1,4 +1,4 @@
-import './main.scss';
+import './main.scss'
 import sketch from './sketch'
 import io from 'socket.io-client'
 
@@ -8,23 +8,22 @@ var index = 0,
 	total = 0,
 	voice = 0
 
-// Self
-
-socket.on("index", function(i) {
+socket.on("init", function(i, v) {
 	index = i
 	total = i
 
-	update()
-});
+	voice = v
 
-socket.on("voice", function(i) {
-	voice = i
+	updateVoiceUI(v)
 
-	var clss = 'is-voice-' + i
-	document.body.classList.add(clss)
-});
+	updateUI()
+})
 
-// Other
+socket.on("total", function(i) {
+	total = i
+
+	updateUI()
+})
 
 socket.on("disconnection", function(data) {
 	if(index >= data.user.index) {
@@ -33,18 +32,20 @@ socket.on("disconnection", function(data) {
 
 	total = data.total_connections
 
-	update()
-});
+	updateUI()
+})
 
-socket.on("total", function(i) {
-	total = i
-
-	update()
-});
-
-function update() {
+function updateUI() {
 	document.getElementById('index').innerHTML = index
 	document.getElementById('total').innerHTML = total
 }
 
-sketch(socket)
+function updateVoiceUI(v){
+	document.body.classList.add('is-voice-' + v)
+}
+
+function callbackFromSketch(){
+	document.body.classList.add('is-ready')
+}
+
+sketch(socket, callbackFromSketch)

@@ -1,7 +1,7 @@
 import p5 from 'p5'
 import 'p5/lib/addons/p5.sound'
 
-var sketch = function(socket){
+var sketch = function(socket, callback){
 
 	var MARGIN_WIDTH = 50
 	var MAX_WIDTH = 500 + MARGIN_WIDTH
@@ -16,7 +16,6 @@ var sketch = function(socket){
 	
 	var circles = []
 	var voice = 0
-	var isPlaying = false
 
 	window.preload = function() {
 		soundFormats('ogg')
@@ -39,8 +38,8 @@ var sketch = function(socket){
 		circles.push( new Circle(250, 0.01) )
 		circles.push( new Circle(150, 0.2) )	
 
-		socket.on('voice', function(i) {
-			voice = i
+		socket.on('init', function(i, v) {							// index, voice
+			voice = v
 
 			var _voice = 0											// for debugging
 
@@ -51,16 +50,17 @@ var sketch = function(socket){
 					circle.setSound(sound)
 
 					if(allLoaded(circles)) {
-						play(circles)
-
-						ready()
-
-						isPlaying = true
+						ready(circles)
 					}
 				})
 			})
 
 		})
+
+		// reset default mouse positions
+
+		mouseX = -1
+		mouseY = -1
 	}
 
 	window.draw = function() {
@@ -102,7 +102,6 @@ var sketch = function(socket){
 			muteCircles(true)
 		}
 
-		
 	}
 
 	function arePlayingSolo(circles) {
@@ -163,8 +162,9 @@ var sketch = function(socket){
 
 	function drawCenter(x, y) {
 		fill(255, 50)
+		fill(getColor())
 		noStroke()
-		ellipse(x, y, 10, 10)
+		ellipse(x, y, 1, 1)
 	}
 
 	function drawSpider(circles, x, y) {
@@ -175,28 +175,55 @@ var sketch = function(socket){
 			var rad = circle.getScaledRad()
 
 			var center = createVector(circle.x, circle.y)									// center of circle
-			var rim = createVector(circle.x + circle.timeX, circle.y + circle.timeY)		// moving rim point
+			var playhead = createVector(circle.x + circle.timeX, circle.y + circle.timeY)		// moving playhead point
 
-			var mouse = createVector(x, y)													// mouse
-			mouse.sub(rim)
+			// mouse to playhead position on the circle
+			var mouse = createVector(x, y)
+			mouse.sub(playhead)
 
+			// get distance from to center
 			var d = dist(x, y, circle.x, circle.y)
 			d = constrain(d, 0, rad)
 			d = map(d, 0, rad, 10, 0)
 
 			var vol = map(d, 10, 0, 1, 0)
-			circle.setVolume(vol)
+			var opacity = map(vol, 0, 1, 100, 255)
 
-			//var opacity = map(vol, 0, 1, 0, 255)
+			// get distance to outerCircle
+			var dOuterCircle = dist(x, y, circle.x, circle.y)
+			dOuterCircle -= rad
 
-			// Draw it
+			var volOuterCircle = constrain(map(dOuterCircle, 0, 30, 1, 0), 0, 1)
+			var opacityOuterCircle = map(volOuterCircle, 0, 1, 0, 255)
 
-			stroke(getColor())
+			// update sound
 
-			push()
-			translate(rim.x, rim.y)
-			line(0, 0, mouse.x, mouse.y)
-			pop()
+			var volume = volOuterCircle
+
+			if(circle.inside){
+				volume = 1
+			}
+
+			// set volume to circle
+			circle.setVolume(volume)
+
+			// display
+			stroke(getColor(opacityOuterCircle))
+
+			if(!arePlayingSolo(circles)){
+				draw()
+			}else{
+				if(circle.inside){
+					draw()
+				}
+			}
+
+			function draw(){
+				push()
+				translate(playhead.x, playhead.y)
+				line(0, 0, mouse.x, mouse.y)
+				pop()
+			}
 		})
 	}
 
@@ -224,7 +251,6 @@ var sketch = function(socket){
 		this.mute = false
 
 		this.inside = false
-		this.loaded = false
 
 		this.scaledRad = rad * scalePercent()
 	  
@@ -236,7 +262,7 @@ var sketch = function(socket){
 			this.inside = this.isInside(x, y)
 
 			// Muted?
-			if(this.sound != null && this.sound.isLoaded()) {
+			if(this.isLoaded()) {
 				if(this.mute) {
 					this.sound.setVolume(0)
 				}else{
@@ -247,8 +273,6 @@ var sketch = function(socket){
 
 		this.setSound = function(sound) {
 			this.sound = sound
-			this.loaded = true
-
 			this.sound.play()
 		}
 
@@ -262,8 +286,8 @@ var sketch = function(socket){
 			this.x = x
 			this.y = y
 
-			this.timeX = - cos(this.rot) * rad/2
-			this.timeY = - sin(this.rot) * rad/2
+			this.timeX = - cos(this.rot) * rad / 2
+			this.timeY = - sin(this.rot) * rad / 2
 
 			noFill()
 
@@ -296,7 +320,11 @@ var sketch = function(socket){
 		}
 
 		this.isLoaded = function() {
-			return this.loaded
+			if(this.sound != null && this.sound.isLoaded()) {
+				return true
+			}
+
+			return false
 		}
 
 		this.loop = function() {
@@ -355,8 +383,15 @@ var sketch = function(socket){
 		return color(clr[0], clr[1], clr[2], opacity)
 	}
 
-	function ready() {
-		document.body.classList.add('is-ready')
+	function ready(circles) {
+		// callback to server (retrieve current playheads (?))
+		socket.emit('callback')
+
+		// play all circles (future: with current playheads?)
+		play(circles)
+
+		// callback to index.js (fade-in with CSS class)
+		callback()
 	}
 }
 

@@ -18,11 +18,11 @@
 
 html {
 	overflow-x: hidden;
+	overflow-y: hidden;
 
 	background-color: black;
 
 	font-family: 'Helvetica';
-	//font-weight: bold;
 	font-size: var(--fontSize);
 	line-height: 1.2em;
 
@@ -73,15 +73,15 @@ body {
 	bottom: 20px;
 }
 
-
 canvas {
 	display: block;
 	
-	position: absolute;
+	position: fixed;
 	left: 50%;
 	top: 50%;
 
 	transform: translate( -50%, -50%);
+	transform: -webkit-translate( -50%, -50%);
 
 	margin: 0 auto;
 

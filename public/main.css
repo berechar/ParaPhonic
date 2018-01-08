@@ -14,6 +14,7 @@
 
 html {
   overflow-x: hidden;
+  overflow-y: hidden;
   background-color: black;
   font-family: 'Helvetica';
   font-size: var(--fontSize);
@@ -49,10 +50,11 @@ body {
 
 canvas {
   display: block;
-  position: absolute;
+  position: fixed;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+  transform: -webkit-translate(-50%, -50%);
   margin: 0 auto;
   opacity: 0;
   transition: opacity 1s ease; }
