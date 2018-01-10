@@ -19,13 +19,8 @@ var sketch = function(socket, callback){
 	var circles = []
 	var voice = 0
 
-	var sound_mp3, sound_wav, sound_ogg;
-
 	window.preload = function() {
-		soundFormats('mp3', 'wav', 'ogg')
-		//sound_mp3 = loadSound('sound/0-0.mp3');
-		//sound_wav = loadSound('sound/0-0.wav');
-		//sound_ogg = loadSound('sound/0-0.ogg');
+		soundFormats('mp3')
 	}
 
 	window.windowResized = function() {
@@ -40,47 +35,42 @@ var sketch = function(socket, callback){
 		textFont('Arial')
 		textSize(30)
 
-		circles.push( new Circle(200, 0.05) )
-		circles.push( new Circle(200, 0.1) )
-		circles.push( new Circle(250, 0.01) )
-		circles.push( new Circle(150, 0.2) )	
-
-		//sound_mp3.setVolume(1);
-		//sound_wav.setVolume(1);
-		//sound_ogg.setVolume(1);
-
-  		//sound_mp3.play();
-  		//sound_wav.play();
-  		//sound_ogg.play();
-
-  		console.log(getAudioContext())
+		circles.push( new Circle(200, 0.05) )						// 1
+		circles.push( new Circle(200, 0.1) )						// 2
+		circles.push( new Circle(250, 0.01) )						// 3
+		circles.push( new Circle(100, 0.2) )						// 4
 
 		socket.on('init', function(i, v) {							// index, voice
 			voice = v
 
 			var _voice = 0											// for debugging
 
-			sound_mp3 = loadSound('sound/0-0.mp3', function(){
-				sound_mp3.setVolume(1);
-				sound_mp3.play()	
-			});
-			
+			if(v == 0 || v == 1){
+				_voice = 0
+			}
 
-			callback()
+			if(v == 2 || v == 3){
+				_voice = 1
+			}
 
 			circles.forEach(function(circle, i) {	
-				var src = '/sound/' + _voice + '-' + i +'.ogg'
-				//var src = 'http://192.168.42.1/sound/' + _voice + '-' + i +'.ogg'
+				var src = '/sound/' + _voice + '-' + i +'.mp3'
 				
-				/*
 				loadSound(src, function(sound) {					// async
 					circle.setSound(sound)
 
 					if(allLoaded(circles)) {
-						ready(circles)
+						// callback to server (retrieve current playheads (?))
+						socket.emit('callback')
+
+						// play all circles (future: with current playheads?)
+						play(circles)
+
+						// callback to index.js (fade-in with CSS class)
+						callback()
 					}
 				})
-				*/
+				
 			})
 
 		})
@@ -275,6 +265,7 @@ var sketch = function(socket, callback){
 		this.timeY = 0
 
 		this.sound = null
+		this.amp = null
 		this.volume = 0
 		this.mute = false
 
@@ -296,12 +287,15 @@ var sketch = function(socket, callback){
 				}else{
 					this.sound.setVolume(this.volume)
 				}
+				this.amp.setInput(this.sound)
 			}
 		}
 
 		this.setSound = function(sound) {
+			this.amp = new p5.Amplitude()
 			this.sound = sound
 			this.sound.play()
+			this.amp.setInput(this.sound)
 		}
 
 		this.setMute = function(b) {
@@ -323,14 +317,22 @@ var sketch = function(socket, callback){
 				fill(getColor())
 				textAlign(CENTER, CENTER)
 				strokeWeight(0)
-				text("solo", x, y)
+				//text("solo", x, y)
 				noFill()
 			}
 
 			// Draw it
 
 			stroke(getColor())
+
+			// when is there sound in the sample above a certain threshold, make it more clear
+
+			if(this.isLoaded()){
+				//stroke(getColor(ampOpacity))
+			}
+
 			strokeWeight(1)
+
 
 			push()
 			translate(x, y)
@@ -409,17 +411,6 @@ var sketch = function(socket, callback){
 	function getColor(opacity = 255) {
 		var clr = COLORS[voice]
 		return color(clr[0], clr[1], clr[2], opacity)
-	}
-
-	function ready(circles) {
-		// callback to server (retrieve current playheads (?))
-		socket.emit('callback')
-
-		// play all circles (future: with current playheads?)
-		play(circles)
-
-		// callback to index.js (fade-in with CSS class)
-		//callback()
 	}
 }
 

@@ -10,6 +10,9 @@ var index = 0,
 
 socket.on("init", function(i, v) {
 
+	// clear default classes
+	document.body.className = ''
+
 	index = i
 	total = i
 
@@ -18,6 +21,7 @@ socket.on("init", function(i, v) {
 	updateVoiceUI(v)
 
 	updateUI()
+	
 })
 
 socket.on("total", function(i) {

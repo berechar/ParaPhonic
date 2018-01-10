@@ -2,40 +2,27 @@
 
 const express = require('express')
 const app = express()
-const fs = require('fs')
 var http = require('http').Server(app)
-
-// make socket.io available
-var io = require('socket.io')(http)
-
-// request for AJAX POST request to pyropanda
-var request = require("request")
-
-// Keep track of seperates users and their voices
-const MAX_VOICES = 4
-var voices = Array(MAX_VOICES).fill(0)
-
-var users = {}
-
-var total_connections = 0
-var id = 0
-
-// tell express to use the public folder as a static resource folder
-
+var request = require("request")			// request for AJAX POST request to pyropanda
 const CONFIG = require('./src/config.js')
 
-var options = {
-  setHeaders: function (res, path, stat) {
-    res.set('Access-Control-Max-Age', 10000)
-    res.set("Access-Control-Allow-Methods", "POST,GET,OPTIONS")
-    res.set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-  }
-}
+var io = require('socket.io')(http, {
+  // below are engine.IO options
+  pingInterval: 1000,						// pingInterval (Number): how many ms before sending a new ping packet (25000).
+  pingTimeout: 1000							// pingTimeout (Number): how many ms without a pong packet to consider the connection closed (60000)
+})
+
+// Keep track of seperates users and their voices
+var voices = Array(CONFIG.MAX_VOICES).fill(0)
+
+var users = {}
+var total_connections = 0
+var id = 0
 
 if(CONFIG.ENV == 'dev'){
 	app.use(express.static('public'))
 }else{
-	//app.use(express.static('/home/someone/workspace/paradiso/public', options))
+	// NodeJS is being run as a deamon, therefore refer directly to the folder
 	app.use(express.static('/home/someone/workspace/paradiso/public'))
 }
 
@@ -56,14 +43,15 @@ app.get('/captive', function(req, res){
 
 logBoot()
 
-
 // test pyropanda
 
 pyroPandaTestLED()
 
-pyroPandaMotor1(5000)
-pyroPandaMotor2(5000)
-
+setTimeout(function(){
+	pyroPandaSolidLight()	
+	
+	flicker('FF0000', '0000FF', 200, 5000)
+}, 4000)
 
 /*
  * User Connection
@@ -83,6 +71,33 @@ io.on('connection', function(socket){
 	}
 
 	logConnection(users[name])
+
+	// the sketch calls back when all audio files have been loaded
+	// retrieve and return the current playheads(?)
+
+	socket.on('callback', function(){
+		//console.log('[callback from ' + name + ']')
+		//console.log('return master playhead')
+	})
+
+	// update client with voice number and total connections
+	socket.emit("init", index, voice)
+	
+
+	// notify all clients of the new amount of connections (which is the current index)
+	io.emit("total", index)
+
+	// - save the current color settings
+	// - notify pyroPanda with a color
+	// - and return to the previous colour settings with the new color (?)
+	pyroPandaSolidLight(getColor(voice))
+	pyroPandaMotor1(5000)
+	pyroPandaMotor2(5000)
+
+	// & update server variables
+	id++
+	total_connections++
+	voices[voice]++
 
 	socket.on('disconnect', function(){
 		// get the disconnected user
@@ -109,33 +124,6 @@ io.on('connection', function(socket){
 		// remove the user
 		users[name] = null
 	})
-
-
-	// the sketch calls back when all audio files have been loaded
-	// retrieve and return the current playheads(?)
-
-	socket.on('callback', function(){
-		//console.log('[callback from ' + name + ']')
-	})
-
-	// update client with voice number and total connections
-	socket.emit("init", index, voice)
-	
-
-	// notify all clients of the new amount of connections (which is the current index)
-	io.emit("total", index)
-
-	// - save the current color settings
-	// - notify pyroPanda with a color
-	// - and return to the previous colour settings with the new color (?)
-	pyroPandaSolidLight(getColor(voice))
-	pyroPandaMotor1(5000)
-	pyroPandaMotor2(5000)
-
-	// & update server variables
-	id++
-	total_connections++
-	voices[voice]++
 })
 
 http.listen(3000, function(){
@@ -143,19 +131,8 @@ http.listen(3000, function(){
 })
 
 setInterval(function(){
-	console.log('[interval]')
-	console.log(total_connections)
+	console.log('[tick]')
 }, 3000)
-
-function ObjectLength( object ) {
-    var length = 0;
-    for( var key in object ) {
-        if( object.hasOwnProperty(key) ) {
-            ++length;
-        }
-    }
-    return length;
-};
 
 function getVoice(voices){
 	// return the least chosen voice(s)
@@ -184,10 +161,10 @@ function getVoice(voices){
 
 function getColor(index){
 	var colors = [
-		'2781A8',				// blue
-		'3A755B',				// green
-		'EDD982',				// yellow
-		'A82727'				// red
+		'6060FF',				// blue
+		'00FF00',				// green
+		'FFFF00',				// yellow
+		'FF0000'				// red
 	]
 
 	return colors[index]
@@ -240,8 +217,10 @@ function testPyroPanda(){
 function toPyroPanda(urlSegment = '/', data = {}){
 	//var url = 'http://pyropanda.local' + urlSegment
 
-	return false
-
+	if(CONFIG.DEV == 'dev'){
+		return false	
+	}
+	
 	var url = 'http://192.168.42.101' + urlSegment
 
 	request({
@@ -249,7 +228,7 @@ function toPyroPanda(urlSegment = '/', data = {}){
 		method: "GET",
 		qs: data
 	}, function( error, resp, body){
-		console.log("response => " + body)
+		//console.log("response => " + body)
 	})
 }
 
@@ -295,6 +274,28 @@ function pyroPandaMotor1(time) {
 
 function pyroPandaMotor2(time) {
 	toPyroPandaMotor(2, time)
+}
+
+function flicker(c1, c2, speed = 500, time, clear = true){
+	var flag = 0
+
+	var x = setInterval(function(){
+		if(flag == 0){
+			pyroPandaSolidLight(c1)
+			flag = 1
+		}else{
+			pyroPandaSolidLight(c2)
+			flag = 0
+		}
+	}, speed)
+
+	setTimeout(function(){
+		clearInterval(x);
+
+		if(clear){
+			pyroPandaClear()
+		}
+	}, time)
 }
 
 /**
