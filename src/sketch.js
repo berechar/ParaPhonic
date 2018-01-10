@@ -3,6 +3,10 @@ import 'p5/lib/addons/p5.sound'
 
 const CONFIG = require('./config.js')
 
+var pause = true
+
+var circles = []
+
 var sketch = function(socket, callback){
 
 	var MARGIN_WIDTH = 50
@@ -16,7 +20,7 @@ var sketch = function(socket, callback){
 			[168, 39, 39]		// red
 		]
 	
-	var circles = []
+	
 	var voice = 0
 
 	window.preload = function() {
@@ -97,6 +101,11 @@ var sketch = function(socket, callback){
 		drawCircles(circles)
 
 		drawText()
+
+		if(pause){
+			muteCircles(true)	
+			return false
+		}
 
 		if(onCanvas(x,y)) {
 			drawSpider(circles, x, y)
@@ -361,6 +370,10 @@ var sketch = function(socket, callback){
 			this.sound.loop()
 		}
 
+		this.play = function(){
+			this.sound.play()
+		}
+
 		this.setVolume = function(f) {
 			this.volume = f
 		}
@@ -414,4 +427,18 @@ var sketch = function(socket, callback){
 	}
 }
 
-export default sketch
+var startAudio = function(){
+	pause = false
+
+	circles.forEach(function(c) {
+		if(c.isLoaded()){
+			c.sound.jump()					// jump to the beginning of each soundfile
+		}
+	})
+}
+
+var stopAudio = function(){
+	pause = true
+}
+
+export { sketch, startAudio, stopAudio }

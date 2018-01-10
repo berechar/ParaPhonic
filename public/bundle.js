@@ -74805,6 +74805,35 @@ socket.on("disconnection", function(data) {
 	updateUI()
 })
 
+var enter = document.getElementById('enter')
+
+enter.addEventListener('click', function(e){
+	e.preventDefault()
+
+	//document.getElementById('home').classList.add('is-hidden')
+	document.body.classList.add('is-soundbox')
+
+
+	// the sketch is by default paused to prevent sound from home
+	// and start the audio files from the beginning
+
+	Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["b" /* startAudio */])()
+
+	return false
+})
+
+var returnHome = document.getElementById('return')
+
+returnHome.addEventListener('click', function(e){
+	e.preventDefault()
+
+	document.body.classList.remove('is-soundbox')
+
+	Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["c" /* stopAudio */])()
+
+	return false
+})
+
 function updateUI() {
 	document.getElementById('index').innerHTML = index
 	document.getElementById('total').innerHTML = total
@@ -74818,7 +74847,7 @@ function callbackFromSketch(){
 	document.body.classList.add('is-ready')
 }
 
-Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["a" /* default */])(socket, callbackFromSketch)
+Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["a" /* sketch */])(socket, callbackFromSketch)
 
 /***/ }),
 /* 23 */
@@ -74831,6 +74860,9 @@ Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["a" /* default */])(socket, callbac
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return sketch; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return startAudio; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return stopAudio; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_p5__ = __webpack_require__(9);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_p5___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_p5__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_p5_lib_addons_p5_sound__ = __webpack_require__(25);
@@ -74839,6 +74871,10 @@ Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["a" /* default */])(socket, callbac
 
 
 const CONFIG = __webpack_require__(26)
+
+var pause = true
+
+var circles = []
 
 var sketch = function(socket, callback){
 
@@ -74853,7 +74889,7 @@ var sketch = function(socket, callback){
 			[168, 39, 39]		// red
 		]
 	
-	var circles = []
+	
 	var voice = 0
 
 	window.preload = function() {
@@ -74934,6 +74970,11 @@ var sketch = function(socket, callback){
 		drawCircles(circles)
 
 		drawText()
+
+		if(pause){
+			muteCircles(true)	
+			return false
+		}
 
 		if(onCanvas(x,y)) {
 			drawSpider(circles, x, y)
@@ -75198,6 +75239,10 @@ var sketch = function(socket, callback){
 			this.sound.loop()
 		}
 
+		this.play = function(){
+			this.sound.play()
+		}
+
 		this.setVolume = function(f) {
 			this.volume = f
 		}
@@ -75251,7 +75296,21 @@ var sketch = function(socket, callback){
 	}
 }
 
-/* harmony default export */ __webpack_exports__["a"] = (sketch);
+var startAudio = function(){
+	pause = false
+
+	circles.forEach(function(c) {
+		if(c.isLoaded()){
+			c.sound.jump()					// jump to the beginning of each soundfile
+		}
+	})
+}
+
+var stopAudio = function(){
+	pause = true
+}
+
+
 
 /***/ }),
 /* 25 */
@@ -85786,6 +85845,7 @@ src_app = function () {
 
 module.exports = {
 	ENV: 'dev',				// 'dev' or 'prod'
+	MAX_VOICES: 4
 }
 
 /***/ }),

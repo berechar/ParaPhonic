@@ -7,17 +7,9 @@ var request = require("request")			// request for AJAX POST request to pyropanda
 const CONFIG = require('./src/config.js')
 
 var io = require('socket.io')(http, {
-  // below are engine.IO options
   pingInterval: 1000,						// pingInterval (Number): how many ms before sending a new ping packet (25000).
   pingTimeout: 1000							// pingTimeout (Number): how many ms without a pong packet to consider the connection closed (60000)
 })
-
-// Keep track of seperates users and their voices
-var voices = Array(CONFIG.MAX_VOICES).fill(0)
-
-var users = {}
-var total_connections = 0
-var id = 0
 
 if(CONFIG.ENV == 'dev'){
 	app.use(express.static('public'))
@@ -25,6 +17,12 @@ if(CONFIG.ENV == 'dev'){
 	// NodeJS is being run as a deamon, therefore refer directly to the folder
 	app.use(express.static('/home/someone/workspace/paradiso/public'))
 }
+
+
+var voices = Array(CONFIG.MAX_VOICES).fill(0)
+var users = {}
+var total_connections = 0
+var id = 0
 
 // serve default page
 
@@ -37,7 +35,6 @@ app.get('/', function(req, res){
 app.get('/captive', function(req, res){
 	res.sendFile(__dirname + '/captive.html')
 })
-
 
 // Log the booting of the server
 
@@ -215,7 +212,6 @@ function testPyroPanda(){
  */
 
 function toPyroPanda(urlSegment = '/', data = {}){
-	//var url = 'http://pyropanda.local' + urlSegment
 
 	if(CONFIG.DEV == 'dev'){
 		return false	

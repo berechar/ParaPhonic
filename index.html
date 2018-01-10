@@ -9,23 +9,121 @@
 			para-phonic poly-diso
 		</title>
 
+		<style>
+			@font-face {
+			    font-family: 'natura_mediumregular';
+			    src: url('font/naturamedium-regular-webfont.eot');
+			    src: url('font/naturamedium-regular-webfont.eot?#iefix') format('embedded-opentype'),
+			         url('font/naturamedium-regular-webfont.woff2') format('woff2'),
+			         url('font/naturamedium-regular-webfont.woff') format('woff'),
+			         url('font/naturamedium-regular-webfont.ttf') format('truetype'),
+			         url('font/naturamedium-regular-webfont.svg#natura_mediumregular') format('svg');
+			    font-weight: normal;
+			    font-style: normal;
+			}
+		</style>
+
 		<link rel="stylesheet" href="main.css"/>
 	</head>
 
 	<body>
 
-		<div id="wrapper">
-
-			<div id="top">
-				para-phonic
-				<br/>
-				poly-diso
-			</div>
+		<!-- soundbox -->
+		<div id="soundbox">
+			<a id="return" href="/">
+				<div id="top">para-phonic<br/>poly-diso</div>
+			</a>
 
 			<div id="bottom">
 				voice <span id="index"></span> of <span id="total"></span>
 			</div>
+		</div>
+		<!-- soundbox -->
+
+		<!-- home -->
+		<div id="home">
+			<div class="item">para-phonic<br/>poly-diso<br/><br/>enable<br/>sound to<br/>maximum<br/>volume
+			</div>
 			
+			<div class="item--center proceed">
+				<a id="enter" href="/">
+					<svg height="202" width="201">
+						  <ellipse cx="101" cy="101" rx="100" ry="100"/>
+					</svg>
+
+					<span id="svg_label">
+						join the
+						<br/>
+						choir
+					</span>
+				</a>
+			</div>
+			
+			<div class="item small">
+				<a href="">the small museum</a> ● <a href="">credits</a>
+			</div>
+		</div>
+		<!-- home -->
+
+		<!-- about/credits -->
+		<div id="about">
+			<article>
+				<h1>
+					The Small Museum (ABOUT)
+				</h1>
+				<p>
+					'Para-phonic Poly-diso' is a graphic score that invites visitors of Paradiso to participate in a digital polyphonic choir.
+				</p>
+				<p>
+					In 11th century Italy, the music theorist Guido of Arezzo developed an ascending scale consisting of six-notes: ut, re, mi, fa, sol and la. A 7th note - 'si' or ‘ti’ - was added later. This scale forms the starting point for 'Do-Re-Mi' and solfège, a system used in music theory.
+				</p>
+				<p>
+					The Small Museum cabinet, which the church used in the old days for public announcements, will be transformed into a local wifi hotspot to stream a multi vocal 'Pa-Ra-Di-So Rapsodia’. While waiting on the Paradiso doorsteps, visitors can connect to the score through their phones and by doing so make the algorithmic choir composition audible.
+				</p>
+				<p>
+					For this multi vocal composition Remco van Bladel collaborated with Lætitia Sadier (Stereolab, Lætitia Sadier Source Ensemble).
+				</p>
+			</article>
+			<article>
+				<h1>
+					Credits
+				</h1>
+				<p>
+					'Para-phonic Poly-diso’ is commissioned by:
+					<br/>
+					The Small Museum / Paradiso, Amsterdam
+				</p>
+				<p>
+					Concept and design:
+					<br/>
+					Remco van Bladel
+				</p>
+				<p>
+					Design assistance:
+					<br/>
+					Marianne Noordzij & Adrian Schnegg 
+				</p>
+				<p>
+					Vocals:
+					<br/>
+					Lætitia Sadier
+				</p>
+				<p>
+					Frontend development:
+					<br/>
+					Charlie Berendsen
+				</p>
+				<p>
+					Hardware, LED and electronics:
+					<br/>
+					Luis Rodil-Fernández
+				</p>
+				<p>
+					'Para-phonic Poly-diso' is part of ‘Pu-shi-ng-Sco-res’, a project in which de player, Rotterdam and Remco van Bladel research the current state of the ‘graphic score'.
+					<br/>
+					'Pu-shi-ng-Sco-res' is supported by Mondriaan Fund and Creative Industries Fund NL.
+				</p>
+			</article>
 		</div>
 
 		<script src="bundle.js"></script>

@@ -1,5 +1,5 @@
 import './main.scss'
-import sketch from './sketch'
+import { sketch, startAudio, stopAudio } from './sketch'
 import io from 'socket.io-client'
 
 var socket = io()
@@ -38,6 +38,35 @@ socket.on("disconnection", function(data) {
 	total = data.total_connections
 
 	updateUI()
+})
+
+var enter = document.getElementById('enter')
+
+enter.addEventListener('click', function(e){
+	e.preventDefault()
+
+	//document.getElementById('home').classList.add('is-hidden')
+	document.body.classList.add('is-soundbox')
+
+
+	// the sketch is by default paused to prevent sound from home
+	// and start the audio files from the beginning
+
+	startAudio()
+
+	return false
+})
+
+var returnHome = document.getElementById('return')
+
+returnHome.addEventListener('click', function(e){
+	e.preventDefault()
+
+	document.body.classList.remove('is-soundbox')
+
+	stopAudio()
+
+	return false
 })
 
 function updateUI() {
