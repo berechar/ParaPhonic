@@ -9,6 +9,7 @@ var index = 0,
 	voice = 0
 
 socket.on("init", function(i, v) {
+
 	index = i
 	total = i
 

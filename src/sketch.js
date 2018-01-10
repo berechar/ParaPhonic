@@ -1,6 +1,8 @@
 import p5 from 'p5'
 import 'p5/lib/addons/p5.sound'
 
+const CONFIG = require('./config.js')
+
 var sketch = function(socket, callback){
 
 	var MARGIN_WIDTH = 50
@@ -17,8 +19,13 @@ var sketch = function(socket, callback){
 	var circles = []
 	var voice = 0
 
+	var sound_mp3, sound_wav, sound_ogg;
+
 	window.preload = function() {
-		soundFormats('ogg')
+		soundFormats('mp3', 'wav', 'ogg')
+		//sound_mp3 = loadSound('sound/0-0.mp3');
+		//sound_wav = loadSound('sound/0-0.wav');
+		//sound_ogg = loadSound('sound/0-0.ogg');
 	}
 
 	window.windowResized = function() {
@@ -38,14 +45,34 @@ var sketch = function(socket, callback){
 		circles.push( new Circle(250, 0.01) )
 		circles.push( new Circle(150, 0.2) )	
 
+		//sound_mp3.setVolume(1);
+		//sound_wav.setVolume(1);
+		//sound_ogg.setVolume(1);
+
+  		//sound_mp3.play();
+  		//sound_wav.play();
+  		//sound_ogg.play();
+
+  		console.log(getAudioContext())
+
 		socket.on('init', function(i, v) {							// index, voice
 			voice = v
 
 			var _voice = 0											// for debugging
 
-			circles.forEach(function(circle, i) {	
-				var src = 'sound/' + _voice + '-' + i +'.ogg'
+			sound_mp3 = loadSound('sound/0-0.mp3', function(){
+				sound_mp3.setVolume(1);
+				sound_mp3.play()	
+			});
+			
 
+			callback()
+
+			circles.forEach(function(circle, i) {	
+				var src = '/sound/' + _voice + '-' + i +'.ogg'
+				//var src = 'http://192.168.42.1/sound/' + _voice + '-' + i +'.ogg'
+				
+				/*
 				loadSound(src, function(sound) {					// async
 					circle.setSound(sound)
 
@@ -53,6 +80,7 @@ var sketch = function(socket, callback){
 						ready(circles)
 					}
 				})
+				*/
 			})
 
 		})
@@ -391,7 +419,7 @@ var sketch = function(socket, callback){
 		play(circles)
 
 		// callback to index.js (fade-in with CSS class)
-		callback()
+		//callback()
 	}
 }
 

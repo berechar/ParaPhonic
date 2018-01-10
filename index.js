@@ -22,7 +22,22 @@ var id = 0
 
 // tell express to use the public folder as a static resource folder
 
-app.use(express.static('public'))
+const CONFIG = require('./src/config.js')
+
+var options = {
+  setHeaders: function (res, path, stat) {
+    res.set('Access-Control-Max-Age', 10000)
+    res.set("Access-Control-Allow-Methods", "POST,GET,OPTIONS")
+    res.set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+  }
+}
+
+if(CONFIG.ENV == 'dev'){
+	app.use(express.static('public'))
+}else{
+	//app.use(express.static('/home/someone/workspace/paradiso/public', options))
+	app.use(express.static('/home/someone/workspace/paradiso/public'))
+}
 
 // serve default page
 
@@ -42,9 +57,12 @@ app.get('/captive', function(req, res){
 logBoot()
 
 
-// test the LEDs
+// test pyropanda
 
 pyroPandaTestLED()
+
+pyroPandaMotor1(5000)
+pyroPandaMotor2(5000)
 
 
 /*
@@ -97,7 +115,7 @@ io.on('connection', function(socket){
 	// retrieve and return the current playheads(?)
 
 	socket.on('callback', function(){
-		console.log('[callback from ' + name + ']')
+		//console.log('[callback from ' + name + ']')
 	})
 
 	// update client with voice number and total connections
@@ -107,12 +125,12 @@ io.on('connection', function(socket){
 	// notify all clients of the new amount of connections (which is the current index)
 	io.emit("total", index)
 
-	// notify pyroPanda: with a color
+	// - save the current color settings
+	// - notify pyroPanda with a color
+	// - and return to the previous colour settings with the new color (?)
 	pyroPandaSolidLight(getColor(voice))
-
-	setTimeout(function(){
-		pyroPandaSolidLight('#000')
-	}, 600)
+	pyroPandaMotor1(5000)
+	pyroPandaMotor2(5000)
 
 	// & update server variables
 	id++
@@ -123,6 +141,21 @@ io.on('connection', function(socket){
 http.listen(3000, function(){
 	console.log('Listening on *:3000')
 })
+
+setInterval(function(){
+	console.log('[interval]')
+	console.log(total_connections)
+}, 3000)
+
+function ObjectLength( object ) {
+    var length = 0;
+    for( var key in object ) {
+        if( object.hasOwnProperty(key) ) {
+            ++length;
+        }
+    }
+    return length;
+};
 
 function getVoice(voices){
 	// return the least chosen voice(s)
@@ -151,14 +184,52 @@ function getVoice(voices){
 
 function getColor(index){
 	var colors = [
-		'#ff0000',
-		'#00ff00',
-		'#0000ff',
-		'#ff00ff'
+		'2781A8',				// blue
+		'3A755B',				// green
+		'EDD982',				// yellow
+		'A82727'				// red
 	]
 
 	return colors[index]
 }
+
+/*
+function testPyroPanda(){
+	var host = 'http://10.0.0.15'
+	var url = host + '/light/solid'
+
+	// Solid test
+
+	var data = data = {
+		solid: '00FFFF'
+	}
+
+	request({
+		url: url,
+		method: "GET",
+		qs: data
+	}, function( error, resp, body){
+		console.log("response => " + body)
+	})
+
+	// Motor test
+
+	url = host + '/spin'
+
+	data = {
+		id: 1,
+		time: 5000
+	}
+
+	request({
+		url: url,
+		method: "GET",
+		qs: data
+	}, function( error, resp, body){
+		console.log("response => " + body)
+	})
+}
+*/
 
 /*
  * PyroPanda
@@ -167,18 +238,19 @@ function getColor(index){
  */
 
 function toPyroPanda(urlSegment = '/', data = {}){
-	var url = 'http://pyropanda.local' + urlSegment
+	//var url = 'http://pyropanda.local' + urlSegment
+
+	return false
+
+	var url = 'http://192.168.42.101' + urlSegment
 
 	request({
-	    url: url,
-	    method: "POST",
-	    headers: {
-	        "content-type": "application/json",
-	        },
-	    json: data
-	}, function (error, resp, body) {
-    	console.log("response from => " + body)
-    })
+		url: url,
+		method: "GET",
+		qs: data
+	}, function( error, resp, body){
+		console.log("response => " + body)
+	})
 }
 
 function toPyroPandaMotor(id, time = 1500){
@@ -186,16 +258,13 @@ function toPyroPandaMotor(id, time = 1500){
 		return false
 	}
 
-	if(id < 0 || id > 1){
+	if(id < 0 || id > 2){
 		return false
 	}
 
-	toPyroPanda('/spin', {
-		'motor': {
-			'id': id,
-			state: 'on',
-			'time': time
-		}
+	toPyroPanda('/spin', {		
+		'id': id,
+		'time': time
 	})
 }
 
@@ -203,33 +272,29 @@ function pyroPandaTestLED(){
 	toPyroPanda('/light/test')
 }
 
-function pyroPandaSolidLight(color = '#FF0000'){
+function pyroPandaSolidLight(color = 'FF0000'){
 	toPyroPanda('/light/solid', {
 		'solid' : color
 	})
 }
 
-function pyroPandaFadeTo(color = '#FF0000', millis = 1500){
+function pyroPandaFadeTo(color = 'FF0000', millis = 1500){
 	toPyroPanda('/light/fadeto', {
 		'fadeTo': color,
 		'time': millis
 	})
 }
 
-function pyroPandaGradient(colors = ['#FF0000', '#00FF00'], millis = 1500) {
-	toPyroPanda('/light/fadeto', {
-		'style': 'linear',
-		'colors': colors,
-		'time': millis
-	})
+function pyroPandaClear(){
+	pyroPandaSolidLight('000000')
 }
 
 function pyroPandaMotor1(time) {
-	toPyroPandoMotor(1, time)
+	toPyroPandaMotor(1, time)
 }
 
 function pyroPandaMotor2(time) {
-	toPyroPandoMotor(2, time)
+	toPyroPandaMotor(2, time)
 }
 
 /**
@@ -248,7 +313,7 @@ function log(line, data){
 
 	line += '\n'
 
-	fs.appendFile('log/log.txt', line, function (err) {})
+	//fs.appendFile('log/log.txt', line, function (err) {})
 }
 
 function logBoot(){

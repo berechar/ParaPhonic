@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "Updating the Rpi..."
+rsync -avz -e "ssh -i ~/.ssh/id_rpi_polydiso -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress . someone@192.168.42.1:/home/someone/workspace/paradiso
