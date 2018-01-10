@@ -30,12 +30,6 @@ app.get('/', function(req, res){
 	res.sendFile(__dirname + '/index.html')
 })
 
-// serve the captive page (temporary)
-
-app.get('/captive', function(req, res){
-	res.sendFile(__dirname + '/captive.html')
-})
-
 // Log the booting of the server
 
 logBoot()
