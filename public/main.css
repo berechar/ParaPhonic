@@ -4,8 +4,9 @@
   user-select: none; }
 
 :root {
-  --color--voice: rgba(255, 255, 255, 0.7);
-  --color--stroke: rgba(255, 255, 255, 0.7);
+  --color--default: rgba(255, 255, 255, 0.7);
+  --color--voice: var(--color--default);
+  --color--stroke: var(--color--default);
   --fontSize: 36px;
   --fontLineHeight: 1em;
   --fontSize--small: 18px;
@@ -32,15 +33,14 @@ html {
 
 body {
   font-size: 100%;
-  color: var(--color--voice);
-  stroke: var(--color--stroke);
-  transition: all 1s ease; }
+  color: var(--color--default); }
   body.is-soundbox #home {
     display: none; }
   body.is-soundbox canvas {
     opacity: 1; }
   body.is-soundbox #soundbox {
-    display: block; }
+    display: block;
+    color: var(--color--voice); }
   body.is-voice-0 {
     --color--voice: var(--color--voice--0);
     --color--stroke: var(--color--voice--0); }
@@ -54,6 +54,16 @@ body {
     --color--voice: var(--color--voice--3);
     --color--stroke: var(--color--voice--3); }
 
+.proceed {
+  color: var(--color--voice);
+  stroke: var(--color--stroke);
+  transition: all 1s ease; }
+  .proceed svg, .proceed #svg_label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); }
+
 #top, #bottom {
   position: fixed;
   z-index: 1;
@@ -61,7 +71,7 @@ body {
   text-align: center; }
 
 #top {
-  top: 20px; }
+  top: 21px; }
 
 #bottom {
   bottom: 20px; }
@@ -106,6 +116,8 @@ canvas {
   top: 0;
   left: 0;
   z-index: 2;
+  padding: 10px;
+  box-sizing: border-box;
   display: none; }
   #about h1 {
     font-size: inherit;
@@ -118,15 +130,37 @@ canvas {
     content: '\A';
     white-space: pre; }
 
-svg, #svg_label {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%); }
-
-ellipse {
+rect, ellipse {
   fill: none;
   stroke-width: 1; }
+
+@keyframes rotate {
+  0% {
+    opacity: 1;
+    transform: rotate(0deg); }
+  25% {
+    transform: rotate(0deg); }
+  50% {
+    transform: rotate(90deg); }
+  75% {
+    opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: rotate(90deg); } }
+
+#rotateDevice {
+  position: relative; }
+
+#rotateDeviceLabel {
+  padding-left: 25px; }
+
+#rotateDevice__svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation-name: rotate;
+  animation-duration: 2s;
+  animation-iteration-count: infinite; }
 
 .item {
   flex-grow: 0; }

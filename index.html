@@ -59,8 +59,15 @@
 				</a>
 			</div>
 			
-			<div class="item small">
-				<a href="">the small museum</a> ● <a href="">credits</a>
+			<div class="item small" style="position: relative;">
+				<span id="rotateDevice">
+					<svg id="rotateDevice__svg" height="21" width="12">
+						<rect x="1" y="1" width="10" height="20" rx="2" ry="2" style="stroke:white;" />
+					</svg>
+				</span>
+				<span id="rotateDeviceLabel">
+					rotate for information
+				</span>
 			</div>
 		</div>
 		<!-- home -->
@@ -68,9 +75,6 @@
 		<!-- about/credits -->
 		<div id="about">
 			<article>
-				<h1>
-					The Small Museum (ABOUT)
-				</h1>
 				<p>
 					'Para-phonic Poly-diso' is a graphic score that invites visitors of Paradiso to participate in a digital polyphonic choir.
 				</p>
@@ -84,6 +88,9 @@
 					For this multi vocal composition Remco van Bladel collaborated with Lætitia Sadier (Stereolab, Lætitia Sadier Source Ensemble).
 				</p>
 			</article>
+			<br/>
+			<br/>
+			<br/>
 			<article>
 				<h1>
 					Credits
@@ -92,6 +99,11 @@
 					'Para-phonic Poly-diso’ is commissioned by:
 					<br/>
 					The Small Museum / Paradiso, Amsterdam
+				</p>
+				<p>
+					Curated by:
+					<br/>
+					Jeldau Kwikkel
 				</p>
 				<p>
 					Concept and design:
@@ -125,6 +137,8 @@
 				</p>
 			</article>
 		</div>
+
+		<!-- <img src="svg/rotate.svg" width="30" style="position: fixed; top:20px; right:20px; z-index: 999;stroke:#FF0000;"> -->
 
 		<script src="bundle.js"></script>
 	</body>

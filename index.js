@@ -3,8 +3,10 @@
 const express = require('express')
 const app = express()
 var http = require('http').Server(app)
-var request = require("request")			// request for AJAX POST request to pyropanda
+//var request = require("request")			// request for AJAX POST request to pyropanda
 const CONFIG = require('./src/config.js')
+
+var pyropanda = require('./src/pyropanda.js')
 
 var io = require('socket.io')(http, {
   pingInterval: 1000,						// pingInterval (Number): how many ms before sending a new ping packet (25000).
@@ -18,11 +20,54 @@ if(CONFIG.ENV == 'dev'){
 	app.use(express.static('/home/someone/workspace/paradiso/public'))
 }
 
-
 var voices = Array(CONFIG.MAX_VOICES).fill(0)
 var users = {}
 var total_connections = 0
 var id = 0
+
+
+var intervals = []
+var timeouts = []
+
+
+var buildInterval = function(fn, ms){
+	return setInterval(function(){
+		fn()
+	}, ms)
+}
+
+var buildTimeoutToClearInterval = function(interval, ms){
+	return setTimeout(function(){
+		clearInterval(interval)
+	}, ms)	
+}
+
+var buildColorSwitchInterval = function(ms = 500, length = 4){
+	var id = 0
+
+	return setInterval(function(){
+		if(id < length - 1){
+			id++
+		}else{
+			id = 0
+		}
+
+		console.log(id)
+	}, ms)
+}
+
+
+//var interval = buildColorSwitchInterval(100)
+
+/*
+
+var intvl = buildInterval(function(){ 							// build and run interval with a function and speed
+	console.log("foo")
+}, 100)
+
+var timer = buildTimeoutToClearInterval(intvl, 3000)		// run a timeout to clear the interval
+
+*/
 
 // serve default page
 
@@ -32,22 +77,35 @@ app.get('/', function(req, res){
 
 // Log the booting of the server
 
-logBoot()
+// logBoot()
 
 // test pyropanda
 
-pyroPandaTestLED()
+// when do we know that we have we-mote connection
+// and can set a default color after boot-up
 
-setTimeout(function(){
-	pyroPandaSolidLight()	
-	
-	flicker('FF0000', '0000FF', 200, 5000)
-}, 4000)
+// eg. send every second a black solid
+// and retrieve the result of the call, if it is a success, we are in control
+
+// var boot = setInterval(function(){
+// 	pyropanda.ping(function(resp){
+// 		if(resp == '{\'result\':\'ok\'}') {
+// 			console.log("successfull ping to pyropanda")
+// 			clearInterval(boot)
+
+// 			// do start-up animation
+
+// 			pyropanda.solid("FFFFFF")
+// 		}
+// 	})
+// }, 1000)
 
 /*
  * User Connection
  *
  */
+
+ pyropanda.testLED()
 
 io.on('connection', function(socket){
 	var name = "user#" + id
@@ -78,12 +136,7 @@ io.on('connection', function(socket){
 	// notify all clients of the new amount of connections (which is the current index)
 	io.emit("total", index)
 
-	// - save the current color settings
-	// - notify pyroPanda with a color
-	// - and return to the previous colour settings with the new color (?)
-	pyroPandaSolidLight(getColor(voice))
-	pyroPandaMotor1(5000)
-	pyroPandaMotor2(5000)
+	pyropanda.solid(getColor(voice))
 
 	// & update server variables
 	id++
@@ -123,7 +176,7 @@ http.listen(3000, function(){
 
 setInterval(function(){
 	console.log('[tick]')
-}, 3000)
+}, 1000)
 
 function getVoice(voices){
 	// return the least chosen voice(s)
@@ -159,133 +212,6 @@ function getColor(index){
 	]
 
 	return colors[index]
-}
-
-/*
-function testPyroPanda(){
-	var host = 'http://10.0.0.15'
-	var url = host + '/light/solid'
-
-	// Solid test
-
-	var data = data = {
-		solid: '00FFFF'
-	}
-
-	request({
-		url: url,
-		method: "GET",
-		qs: data
-	}, function( error, resp, body){
-		console.log("response => " + body)
-	})
-
-	// Motor test
-
-	url = host + '/spin'
-
-	data = {
-		id: 1,
-		time: 5000
-	}
-
-	request({
-		url: url,
-		method: "GET",
-		qs: data
-	}, function( error, resp, body){
-		console.log("response => " + body)
-	})
-}
-*/
-
-/*
- * PyroPanda
- *
- * Send requests to PyroPanda for controlling the hardware
- */
-
-function toPyroPanda(urlSegment = '/', data = {}){
-
-	if(CONFIG.DEV == 'dev'){
-		return false	
-	}
-	
-	var url = 'http://192.168.42.101' + urlSegment
-
-	request({
-		url: url,
-		method: "GET",
-		qs: data
-	}, function( error, resp, body){
-		//console.log("response => " + body)
-	})
-}
-
-function toPyroPandaMotor(id, time = 1500){
-	if(id == null || id == undefined){
-		return false
-	}
-
-	if(id < 0 || id > 2){
-		return false
-	}
-
-	toPyroPanda('/spin', {		
-		'id': id,
-		'time': time
-	})
-}
-
-function pyroPandaTestLED(){
-	toPyroPanda('/light/test')
-}
-
-function pyroPandaSolidLight(color = 'FF0000'){
-	toPyroPanda('/light/solid', {
-		'solid' : color
-	})
-}
-
-function pyroPandaFadeTo(color = 'FF0000', millis = 1500){
-	toPyroPanda('/light/fadeto', {
-		'fadeTo': color,
-		'time': millis
-	})
-}
-
-function pyroPandaClear(){
-	pyroPandaSolidLight('000000')
-}
-
-function pyroPandaMotor1(time) {
-	toPyroPandaMotor(1, time)
-}
-
-function pyroPandaMotor2(time) {
-	toPyroPandaMotor(2, time)
-}
-
-function flicker(c1, c2, speed = 500, time, clear = true){
-	var flag = 0
-
-	var x = setInterval(function(){
-		if(flag == 0){
-			pyroPandaSolidLight(c1)
-			flag = 1
-		}else{
-			pyroPandaSolidLight(c2)
-			flag = 0
-		}
-	}, speed)
-
-	setTimeout(function(){
-		clearInterval(x);
-
-		if(clear){
-			pyroPandaClear()
-		}
-	}, time)
 }
 
 /**
