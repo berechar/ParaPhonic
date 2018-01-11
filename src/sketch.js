@@ -7,6 +7,9 @@ var pause = true
 
 var circles = []
 
+var myFont;
+
+
 var sketch = function(socket, callback){
 
 	var MARGIN_WIDTH = 50
@@ -25,6 +28,7 @@ var sketch = function(socket, callback){
 
 	window.preload = function() {
 		soundFormats('mp3')
+  		myFont = loadFont('/font/naturamedium-regular-webfont.ttf');
 	}
 
 	window.windowResized = function() {
@@ -36,8 +40,8 @@ var sketch = function(socket, callback){
 		var dim = getCanvasDimensions()
 		createCanvas(dim.w, dim.h)
 
-		textFont('Arial')
-		textSize(30)
+		textFont(myFont);
+		textSize(36)
 
 		circles.push( new Circle(200, 0.05) )						// 1
 		circles.push( new Circle(200, 0.1) )						// 2
@@ -59,9 +63,11 @@ var sketch = function(socket, callback){
 
 			circles.forEach(function(circle, i) {	
 				var src = '/sound/' + _voice + '-' + i +'.mp3'
+				var cueSrc = '/cues/' + _voice + '-' + i +'.txt'
 				
 				loadSound(src, function(sound) {					// async
 					circle.setSound(sound)
+					circle.setCues(cueSrc)
 
 					if(allLoaded(circles)) {
 						// callback to server (retrieve current playheads (?))
@@ -109,7 +115,7 @@ var sketch = function(socket, callback){
 
 		if(onCanvas(x,y)) {
 			drawSpider(circles, x, y)
-			drawCenter(x, y)
+			//drawCenter(x, y)
 
 			if(arePlayingSolo(circles)) {
 
@@ -152,8 +158,8 @@ var sketch = function(socket, callback){
 	function drawText() {
 		var padding = 10
 
-		var top = 20 + padding/2
-		var bottom = height - 1 - padding * 2
+		var top = 15 + padding/2
+		var bottom = height - 10 - padding * 2
 		
 		var left = padding
 		var right = width - padding
@@ -246,6 +252,10 @@ var sketch = function(socket, callback){
 			}
 
 			function draw(){
+				if(circle.silence){
+					stroke(getColorDimmed())
+				}
+
 				push()
 				translate(playhead.x, playhead.y)
 				line(0, 0, mouse.x, mouse.y)
@@ -277,6 +287,7 @@ var sketch = function(socket, callback){
 		this.amp = null
 		this.volume = 0
 		this.mute = false
+		this.silence = false
 
 		this.inside = false
 
@@ -307,6 +318,35 @@ var sketch = function(socket, callback){
 			this.amp.setInput(this.sound)
 		}
 
+		this.setCues = function(src){
+			var _this = this
+
+			loadStrings(src, function(data){
+				//console.log(data)
+				data.forEach(function(line){
+					var parts = split(line, '\t')
+					var time = parseFloat(parts[0])
+					var val = parts[1]
+					
+					_this.sound.addCue(time, _this.fadeStroke, {
+						_this: _this,
+						val: val
+					})
+				})
+			})
+		}
+
+		this.fadeStroke = function(data){
+			var _this = data._this
+			var type = data.val
+
+			if(type == 'in'){
+				_this.silence = false
+			}else if(type == 'out'){
+				_this.silence = true
+			}
+		}
+
 		this.setMute = function(b) {
 			this.mute = b
 		}
@@ -331,17 +371,12 @@ var sketch = function(socket, callback){
 			}
 
 			// Draw it
-
 			stroke(getColor())
-
-			// when is there sound in the sample above a certain threshold, make it more clear
-
-			if(this.isLoaded()){
-				//stroke(getColor(ampOpacity))
-			}
-
 			strokeWeight(1)
 
+			if(this.silence){
+				stroke(getColorDimmed())
+			}
 
 			push()
 			translate(x, y)
@@ -424,6 +459,10 @@ var sketch = function(socket, callback){
 	function getColor(opacity = 255) {
 		var clr = COLORS[voice]
 		return color(clr[0], clr[1], clr[2], opacity)
+	}
+
+	function getColorDimmed(){
+		return getColor(150)
 	}
 }
 

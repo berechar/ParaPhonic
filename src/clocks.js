@@ -37,20 +37,19 @@ module.exports = {
 		}, ms)
 	},
 
-	buildColorWheelInterval: function(colors, steps, ms, fn){
-		const colorSteps = cs.generateSteps(colors, steps)
+	buildColorInterval: function(colors, ms, fn){
 		var index = 0
 
 		return setInterval(function(){
-			var color = colorSteps[index]
+			var color = colors[index]
 
-			if(index < colorSteps.length - 1){
+			if(index < colors.length - 1){
 				index++
 			}else{
 				index = 0
 			}
 
-			color = color.substr(1).toUpperCase()
+			color = color.toUpperCase()
 
 			fn(color)	
 		}, ms)

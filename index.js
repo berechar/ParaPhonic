@@ -27,16 +27,13 @@ var total_connections = 0
 var total_singers = 0
 var id = 0
 
-
 // serve default page
 
 app.get('/', function(req, res){
 	res.sendFile(__dirname + '/index.html')
 })
 
-http.listen(3000, function(){
-	console.log('Listening on *:3000')
-})
+// default light setting
 
 if(CONFIG.DEV != 'dev'){
 	// when do we know that we have we-mote connection
@@ -49,27 +46,13 @@ if(CONFIG.DEV != 'dev'){
 				console.log("successfull ping to pyropanda")
 				clearInterval(boot)
 
-				// do start-up animation
-				//startDefaultColorWheel()
-
-				startBlackToWhiteFade()
+				pyropanda.solid('FFFFFF')
 			}
 		})
 	}, 1000)
-
 }
 
 
-
-// Whenever someone joins for the first time
-// flash their light for 5 seconds
-// then start the color wheel from their colour to the other participants
-
-// 1. Get to know which users are joined
-// 2. Find out their colors
-
-function startActiveColorWheel(){
-	clocks.clearIntervals()
 
 	function getActiveColors(){
 		// get users as array
@@ -83,48 +66,13 @@ function startActiveColorWheel(){
 			}
 		})
 
-		// add the first color to the end for infinite loop
-		colors.push(colors[0])
+		// have always a light on
+		if(colors.length == 0){
+			colors.push('FFFFFF')
+		}
 
 		return colors
 	}
-
-	var interval = clocks.buildColorWheelInterval(getActiveColors(), 100, 100, function(color){
-		console.log(color)
-		pyropanda.solid(color)
-	})
-
-	clocks.addInterval(interval)
-}
-
-function startDefaultColorWheel(){
-	clocks.clearIntervals()
-
-	var idleColors = CONFIG.COLORS
-	idleColors.push(CONFIG.COLORS[0])
-
-	var interval = clocks.buildColorWheelInterval(idleColors, 100, 100, function(color){
-		pyropanda.solid(color)
-	})
-
-	clocks.addInterval(interval)
-}
-
-function startBlackToWhiteFade(){
-	var index = 0
-	
-	var whiteFade = clocks.buildInterval(function(){
-		if(index < 9){
-			index++
-		}else{
-			clearInterval(whiteFade)
-		}
-
-		var color = index.toString().repeat(8)
-		pyropanda.solid(color)
-		
-	}, 20)
-}
 
 
 /*
@@ -181,6 +129,9 @@ io.on('connection', function(socket){
 
 		// remove the user
 		users[name] = null
+
+		// and update the colors
+		updateColors()
 	})
 
 	socket.on("joined", function(){
@@ -194,9 +145,11 @@ io.on('connection', function(socket){
 	socket.on("left", function(){
 		total_singers--
 
-		users[name].active = true
+		users[name].active = false
 
 		io.emit("total", total_singers)					// notify all clients of the new amount of singers	
+
+		updateColors()
 	})
 
 	function startSinging(){
@@ -214,18 +167,26 @@ io.on('connection', function(socket){
 		 *
 		 */
 
+		updateColors(getColor(voice))
+	}
+
+	function updateColors(color){
 		clocks.clearIntervals()
-		clocks.clearTimeouts()
 
-		pyropanda.solid(getColor(voice))
+		var time = 0
 
-		var update = clocks.buildTimeout(function(){
-			if(total_singers >= 2){
-				//startActiveColorWheel()
-			}
-		}, 3000)
+		if(color != null){
+			pyropanda.solid(color)
+			time = 1000
+		}
 
-		clocks.addTimeout(update)
+		setTimeout(function(){
+			var interval = clocks.buildColorInterval(getActiveColors(), 600, function(color){
+				pyropanda.solid(color)
+			})
+
+			clocks.addInterval(interval)
+		}, time)
 	}
 })
 
@@ -259,13 +220,17 @@ function getColor(index){
 	return CONFIG.COLORS[index]
 }
 
+http.listen(3000, function(){
+	console.log('Listening on *:3000')
+})
+
 /**
  * Logging
  *
  */
 
  setInterval(function(){
-	console.log('[tick]')
+	//console.log('[tick]')
 }, 1000)
 
 function logConnection(user){
