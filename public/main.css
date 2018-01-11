@@ -71,7 +71,7 @@ body {
   text-align: center; }
 
 #top {
-  top: 21px; }
+  top: 20px; }
 
 #bottom {
   bottom: 20px; }
@@ -163,7 +163,8 @@ rect, ellipse {
   animation-iteration-count: infinite; }
 
 .item {
-  flex-grow: 0; }
+  flex-grow: 0;
+  position: relative; }
 
 .item:first-child {
   padding-top: 20px; }
@@ -172,8 +173,7 @@ rect, ellipse {
   padding-bottom: 20px; }
 
 .item--center {
-  flex-grow: 1;
-  position: relative; }
+  flex-grow: 1; }
 
 .small {
   font-size: var(--fontSize--small); }

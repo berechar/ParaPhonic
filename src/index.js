@@ -6,7 +6,8 @@ var socket = io()
 
 var index = 0,
 	total = 0,
-	voice = 0
+	voice = 0,
+	joined = false
 
 socket.on("init", function(i, v) {
 
@@ -24,8 +25,20 @@ socket.on("init", function(i, v) {
 	
 })
 
+socket.on("index", function(i) {
+
+	index = i
+
+	updateUI()
+	
+})
+
 socket.on("total", function(i) {
 	total = i
+
+	if(index > total){
+		index--
+	}
 
 	updateUI()
 })
@@ -35,19 +48,32 @@ socket.on("disconnection", function(data) {
 		index--
 	}
 
-	total = data.total_connections
+	total = data.total_singers
 
 	updateUI()
 })
+
+/**
+ * DOM events
+ *
+ */
 
 var enter = document.getElementById('enter')
 
 enter.addEventListener('click', function(e){
 	e.preventDefault()
 
-	//document.getElementById('home').classList.add('is-hidden')
 	document.body.classList.add('is-soundbox')
 
+	
+
+	if(!joined){
+		socket.emit('joined')
+		document.getElementById('svg_label').innerHTML = 'resume'
+		joined = true
+	}else{
+		socket.emit('resume')
+	}
 
 	// the sketch is by default paused to prevent sound from home
 	// and start the audio files from the beginning
@@ -63,6 +89,8 @@ returnHome.addEventListener('click', function(e){
 	e.preventDefault()
 
 	document.body.classList.remove('is-soundbox')
+
+	socket.emit("left")
 
 	stopAudio()
 

@@ -5,7 +5,7 @@ module.exports = {
 	init: function(){
 		console.log("init")
 	},
-	send: function(urlSegment = '/', data = {}){
+	send: function(urlSegment = '/', data = {}, callback){
 		if(CONFIG.DEV == 'dev'){
 			return false	
 		}
@@ -17,6 +17,11 @@ module.exports = {
 			method: "GET",
 			qs: data
 		}, function( error, resp, body){
+
+			if(callback != null){
+				callback(body)
+			}
+			
 		})
 	},
 	testLED: function(){

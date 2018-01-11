@@ -3,10 +3,11 @@
 const express = require('express')
 const app = express()
 var http = require('http').Server(app)
-//var request = require("request")			// request for AJAX POST request to pyropanda
-const CONFIG = require('./src/config.js')
+const cs = require('color-stepper')
 
-var pyropanda = require('./src/pyropanda.js')
+const CONFIG = require('./src/config.js')
+const pyropanda = require('./src/pyropanda.js')
+const clocks = require('./src/clocks.js')
 
 var io = require('socket.io')(http, {
   pingInterval: 1000,						// pingInterval (Number): how many ms before sending a new ping packet (25000).
@@ -23,51 +24,9 @@ if(CONFIG.ENV == 'dev'){
 var voices = Array(CONFIG.MAX_VOICES).fill(0)
 var users = {}
 var total_connections = 0
+var total_singers = 0
 var id = 0
 
-
-var intervals = []
-var timeouts = []
-
-
-var buildInterval = function(fn, ms){
-	return setInterval(function(){
-		fn()
-	}, ms)
-}
-
-var buildTimeoutToClearInterval = function(interval, ms){
-	return setTimeout(function(){
-		clearInterval(interval)
-	}, ms)	
-}
-
-var buildColorSwitchInterval = function(ms = 500, length = 4){
-	var id = 0
-
-	return setInterval(function(){
-		if(id < length - 1){
-			id++
-		}else{
-			id = 0
-		}
-
-		console.log(id)
-	}, ms)
-}
-
-
-//var interval = buildColorSwitchInterval(100)
-
-/*
-
-var intvl = buildInterval(function(){ 							// build and run interval with a function and speed
-	console.log("foo")
-}, 100)
-
-var timer = buildTimeoutToClearInterval(intvl, 3000)		// run a timeout to clear the interval
-
-*/
 
 // serve default page
 
@@ -75,70 +34,127 @@ app.get('/', function(req, res){
 	res.sendFile(__dirname + '/index.html')
 })
 
-// Log the booting of the server
+http.listen(3000, function(){
+	console.log('Listening on *:3000')
+})
 
-// logBoot()
+if(CONFIG.DEV != 'dev'){
+	// when do we know that we have we-mote connection
+	// and can set a default color after boot-up
 
-// test pyropanda
+	var boot = clocks.buildInterval(function(){
+		pyropanda.ping(function(resp){
 
-// when do we know that we have we-mote connection
-// and can set a default color after boot-up
+			if(resp == '{\'result\':\'ok\'}') {
+				console.log("successfull ping to pyropanda")
+				clearInterval(boot)
 
-// eg. send every second a black solid
-// and retrieve the result of the call, if it is a success, we are in control
+				// do start-up animation
+				//startDefaultColorWheel()
 
-// var boot = setInterval(function(){
-// 	pyropanda.ping(function(resp){
-// 		if(resp == '{\'result\':\'ok\'}') {
-// 			console.log("successfull ping to pyropanda")
-// 			clearInterval(boot)
+				startBlackToWhiteFade()
+			}
+		})
+	}, 1000)
 
-// 			// do start-up animation
+}
 
-// 			pyropanda.solid("FFFFFF")
-// 		}
-// 	})
-// }, 1000)
+
+
+// Whenever someone joins for the first time
+// flash their light for 5 seconds
+// then start the color wheel from their colour to the other participants
+
+// 1. Get to know which users are joined
+// 2. Find out their colors
+
+function startActiveColorWheel(){
+	clocks.clearIntervals()
+
+	function getActiveColors(){
+		// get users as array
+		var arr = Array.from(Object.keys(users), k=>users[k]);
+		var colors = []
+
+		// fetch colors of active users
+		arr.forEach(function(u){
+			if(u != null && u.active){
+				colors.push(getColor(u.voice))
+			}
+		})
+
+		// add the first color to the end for infinite loop
+		colors.push(colors[0])
+
+		return colors
+	}
+
+	var interval = clocks.buildColorWheelInterval(getActiveColors(), 100, 100, function(color){
+		console.log(color)
+		pyropanda.solid(color)
+	})
+
+	clocks.addInterval(interval)
+}
+
+function startDefaultColorWheel(){
+	clocks.clearIntervals()
+
+	var idleColors = CONFIG.COLORS
+	idleColors.push(CONFIG.COLORS[0])
+
+	var interval = clocks.buildColorWheelInterval(idleColors, 100, 100, function(color){
+		pyropanda.solid(color)
+	})
+
+	clocks.addInterval(interval)
+}
+
+function startBlackToWhiteFade(){
+	var index = 0
+	
+	var whiteFade = clocks.buildInterval(function(){
+		if(index < 9){
+			index++
+		}else{
+			clearInterval(whiteFade)
+		}
+
+		var color = index.toString().repeat(8)
+		pyropanda.solid(color)
+		
+	}, 20)
+}
+
 
 /*
  * User Connection
  *
  */
 
- pyropanda.testLED()
-
 io.on('connection', function(socket){
 	var name = "user#" + id
 	var index = total_connections + 1
 	var voice = getVoice(voices)
+	var active = false
 
 	// save this user
 	users[name] = {
 		name,
 		index,
-		voice
+		voice,
+		active
 	}
 
 	logConnection(users[name])
 
-	// the sketch calls back when all audio files have been loaded
-	// retrieve and return the current playheads(?)
-
-	socket.on('callback', function(){
-		//console.log('[callback from ' + name + ']')
-		//console.log('return master playhead')
-	})
-
 	// update client with voice number and total connections
+
 	socket.emit("init", index, voice)
 	
 
-	// notify all clients of the new amount of connections (which is the current index)
-	io.emit("total", index)
-
-	pyropanda.solid(getColor(voice))
-
 	// & update server variables
+
 	id++
 	total_connections++
 	voices[voice]++
@@ -152,31 +168,67 @@ io.on('connection', function(socket){
 		// update server variables
 		voices[voice]--
 		total_connections--
+		total_singers--
 
-		/*
-		 * notify everyone that we lost a connection
-		 * and that they should update their indices
-		 * and their total number
-		 *
-		 */
+		if(total_singers < 0){
+			total_singers = 0
+		}
 		
 		io.emit("disconnection", {
 			user,
-			total_connections
+			total_singers
 		});
 
 		// remove the user
 		users[name] = null
 	})
+
+	socket.on("joined", function(){
+		startSinging()
+	})
+
+	socket.on("resume", function(){
+		startSinging()
+	})
+
+	socket.on("left", function(){
+		total_singers--
+
+		users[name].active = true
+
+		io.emit("total", total_singers)					// notify all clients of the new amount of singers	
+	})
+
+	function startSinging(){
+		total_singers++									// increment the amount of active singers
+
+		users[name].index = total_singers				// save it to this user (when disconnecting)
+		users[name].active = true
+
+		socket.emit("index", total_singers)				// notify the client of the index
+
+		io.emit("total", total_singers)					// notify all clients of the new amount of singers
+
+		/**
+		 *  Color magic
+		 *
+		 */
+
+		clocks.clearIntervals()
+		clocks.clearTimeouts()
+
+		pyropanda.solid(getColor(voice))
+
+		var update = clocks.buildTimeout(function(){
+			if(total_singers >= 2){
+				//startActiveColorWheel()
+			}
+		}, 3000)
+
+		clocks.addTimeout(update)
+	}
 })
 
-http.listen(3000, function(){
-	console.log('Listening on *:3000')
-})
-
-setInterval(function(){
-	console.log('[tick]')
-}, 1000)
 
 function getVoice(voices){
 	// return the least chosen voice(s)
@@ -204,45 +256,22 @@ function getVoice(voices){
 }
 
 function getColor(index){
-	var colors = [
-		'6060FF',				// blue
-		'00FF00',				// green
-		'FFFF00',				// yellow
-		'FF0000'				// red
-	]
-
-	return colors[index]
+	return CONFIG.COLORS[index]
 }
 
 /**
- * Simple logger
+ * Logging
  *
  */
 
-function log(line, data){
-	var now = Date().toString()
-
-	if(data != null){
-		line = now + " = " + line + ":" + JSON.stringify(data);
-	}else{
-		line = now + " = " + line;
-	}
-
-	line += '\n'
-
-	//fs.appendFile('log/log.txt', line, function (err) {})
-}
-
-function logBoot(){
-	log("boot")
-}
+ setInterval(function(){
+	console.log('[tick]')
+}, 1000)
 
 function logConnection(user){
 	console.log('[user connected]')
-	log('connection', user)
 }
 
 function logDisconnection(user){
 	console.log('[user disconnected]')
-	log('disconnection', user)
 }

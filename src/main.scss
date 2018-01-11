@@ -19,10 +19,6 @@
 	--color--voice--1: rgb(58, 117, 91); 		// green
 	--color--voice--2: rgb(237, 217, 130);		// yellow
 	--color--voice--3: rgb(168, 39, 39);		// red
-
-	@media (max-width:600px) and (max-height: 750px){
-		//--fontSize: 20px;
-	}
 }
 
 /* Reset */
@@ -114,7 +110,7 @@ body {
 }
 
 #top {
-	top: 21px; // 20px seems off with the natura font
+	top: 20px;
 }
 
 #bottom {
@@ -256,6 +252,7 @@ rect, ellipse {
 
 .item {
 	flex-grow: 0;
+	position: relative;
 }
 
 .item:first-child {
@@ -268,8 +265,6 @@ rect, ellipse {
 
 .item--center {
 	flex-grow: 1;
-	
-	position: relative;
 }
 
 .small {
