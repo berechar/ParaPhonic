@@ -22,7 +22,7 @@ module.exports = {
 			fn()
 		}, ms)
 	},
-
+	/*
 	buildColorSwitchInterval: function(ms = 500, length = 4){
 		var id = 0
 
@@ -36,6 +36,7 @@ module.exports = {
 			console.log(id)
 		}, ms)
 	},
+	*/
 
 	buildColorInterval: function(colors, ms, fn){
 		var index = 0
@@ -53,6 +54,15 @@ module.exports = {
 
 			fn(color)	
 		}, ms)
+	},
+
+	buildCounter: function(fn){
+		var counter = 0
+
+		return setInterval(() => {
+			counter++
+			fn(counter)
+		}, 1000)
 	},
 
 	addInterval: function(interval){

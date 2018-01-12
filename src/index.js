@@ -1,13 +1,29 @@
 import './main.scss'
 import { sketch, startAudio, stopAudio } from './sketch'
 import io from 'socket.io-client'
+var CONFIG = require('./config.js')
 
-var socket = io()
+var loc = 'http://localhost:3000'
+
+if(CONFIG.ENV != 'dev') {
+	loc = 'http://192.168.42.1'
+}
+
+var socket = io(loc, {
+	forceNew: true    // changed all totals...
+})
 
 var index = 0,
 	total = 0,
 	voice = 0,
 	joined = false
+
+
+/**
+ * Initalize page
+ *
+ */
+
 
 socket.on("init", function(i, v) {
 
@@ -25,6 +41,13 @@ socket.on("init", function(i, v) {
 	
 })
 
+
+/**
+ * Update the index
+ *
+ */
+
+
 socket.on("index", function(i) {
 
 	index = i
@@ -32,6 +55,13 @@ socket.on("index", function(i) {
 	updateUI()
 	
 })
+
+
+/**
+ * Update the total
+ *
+ */
+
 
 socket.on("total", function(i) {
 	total = i
@@ -43,6 +73,13 @@ socket.on("total", function(i) {
 	updateUI()
 })
 
+
+/**
+ * React when a disconnection takes place
+ *
+ */
+
+
 socket.on("disconnection", function(data) {
 	if(index >= data.user.index) {
 		index--
@@ -53,10 +90,14 @@ socket.on("disconnection", function(data) {
 	updateUI()
 })
 
+
 /**
  * DOM events
  *
+ * Enter the player
+ *
  */
+
 
 var enter = document.getElementById('enter')
 
@@ -65,11 +106,10 @@ enter.addEventListener('click', function(e){
 
 	document.body.classList.add('is-soundbox')
 
-	
-
 	if(!joined){
 		socket.emit('joined')
 		document.getElementById('svg_label').innerHTML = 'resume'
+
 		joined = true
 	}else{
 		socket.emit('resume')
@@ -82,6 +122,13 @@ enter.addEventListener('click', function(e){
 
 	return false
 })
+
+
+/**
+ * Return to home
+ *
+ */
+
 
 var returnHome = document.getElementById('return')
 

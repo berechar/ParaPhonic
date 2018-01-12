@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 22);
+/******/ 	return __webpack_require__(__webpack_require__.s = 23);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -460,7 +460,7 @@ Emitter.prototype.hasListeners = function(event){
  */
 
 var keys = __webpack_require__(37);
-var hasBinary = __webpack_require__(11);
+var hasBinary = __webpack_require__(12);
 var sliceBuffer = __webpack_require__(38);
 var after = __webpack_require__(39);
 var utf8 = __webpack_require__(40);
@@ -1130,9 +1130,9 @@ module.exports = function(a, b){
 
 var debug = __webpack_require__(1)('socket.io-parser');
 var Emitter = __webpack_require__(2);
-var hasBin = __webpack_require__(11);
+var hasBin = __webpack_require__(12);
 var binary = __webpack_require__(32);
-var isBuf = __webpack_require__(13);
+var isBuf = __webpack_require__(14);
 
 /**
  * Protocol version.
@@ -73148,6 +73148,21 @@ module.exports = p5;
 /* 10 */
 /***/ (function(module, exports) {
 
+module.exports = {
+	ENV: 'prod',				// 'dev' or 'prod'
+	MAX_VOICES: 4,
+	COLORS: [
+		'6060FF',				// blue
+		'00FF00',				// green
+		'FFFF00',				// yellow
+		'FF0000'				// red
+	]
+}
+
+/***/ }),
+/* 11 */
+/***/ (function(module, exports) {
+
 /**
  * Parses an URI
  *
@@ -73190,7 +73205,7 @@ module.exports = function parseuri(str) {
 
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {/* global Blob File */
@@ -73199,7 +73214,7 @@ module.exports = function parseuri(str) {
  * Module requirements.
  */
 
-var isArray = __webpack_require__(12);
+var isArray = __webpack_require__(13);
 
 var toString = Object.prototype.toString;
 var withNativeBlob = typeof global.Blob === 'function' || toString.call(global.Blob) === '[object BlobConstructor]';
@@ -73259,7 +73274,7 @@ function hasBinary (obj) {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports) {
 
 var toString = {}.toString;
@@ -73270,7 +73285,7 @@ module.exports = Array.isArray || function (arr) {
 
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {
@@ -73290,7 +73305,7 @@ function isBuf(obj) {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
@@ -73299,13 +73314,13 @@ function isBuf(obj) {
  */
 
 var eio = __webpack_require__(33);
-var Socket = __webpack_require__(19);
+var Socket = __webpack_require__(20);
 var Emitter = __webpack_require__(2);
 var parser = __webpack_require__(6);
-var on = __webpack_require__(20);
-var bind = __webpack_require__(21);
+var on = __webpack_require__(21);
+var bind = __webpack_require__(22);
 var debug = __webpack_require__(1)('socket.io-client:manager');
-var indexOf = __webpack_require__(18);
+var indexOf = __webpack_require__(19);
 var Backoff = __webpack_require__(48);
 
 /**
@@ -73869,7 +73884,7 @@ Manager.prototype.onreconnect = function () {
 
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {/**
@@ -73929,7 +73944,7 @@ function polling (opts) {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /**
@@ -73940,7 +73955,7 @@ var Transport = __webpack_require__(8);
 var parseqs = __webpack_require__(4);
 var parser = __webpack_require__(3);
 var inherit = __webpack_require__(5);
-var yeast = __webpack_require__(17);
+var yeast = __webpack_require__(18);
 var debug = __webpack_require__(1)('engine.io-client:polling');
 
 /**
@@ -74180,7 +74195,7 @@ Polling.prototype.uri = function () {
 
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -74255,7 +74270,7 @@ module.exports = yeast;
 
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ (function(module, exports) {
 
 
@@ -74270,7 +74285,7 @@ module.exports = function(arr, obj){
 };
 
 /***/ }),
-/* 19 */
+/* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
@@ -74281,8 +74296,8 @@ module.exports = function(arr, obj){
 var parser = __webpack_require__(6);
 var Emitter = __webpack_require__(2);
 var toArray = __webpack_require__(47);
-var on = __webpack_require__(20);
-var bind = __webpack_require__(21);
+var on = __webpack_require__(21);
+var bind = __webpack_require__(22);
 var debug = __webpack_require__(1)('socket.io-client:socket');
 var parseqs = __webpack_require__(4);
 
@@ -74694,7 +74709,7 @@ Socket.prototype.compress = function (compress) {
 
 
 /***/ }),
-/* 20 */
+/* 21 */
 /***/ (function(module, exports) {
 
 
@@ -74724,7 +74739,7 @@ function on (obj, ev, fn) {
 
 
 /***/ }),
-/* 21 */
+/* 22 */
 /***/ (function(module, exports) {
 
 /**
@@ -74753,26 +74768,42 @@ module.exports = function(obj, fn){
 
 
 /***/ }),
-/* 22 */
+/* 23 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__main_scss__ = __webpack_require__(23);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__main_scss__ = __webpack_require__(24);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__main_scss___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__main_scss__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__sketch__ = __webpack_require__(24);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__sketch__ = __webpack_require__(25);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_socket_io_client__ = __webpack_require__(27);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_socket_io_client___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_socket_io_client__);
 
 
 
+var CONFIG = __webpack_require__(10)
 
-var socket = __WEBPACK_IMPORTED_MODULE_2_socket_io_client___default()()
+var loc = 'http://localhost:3000'
+
+if(CONFIG.ENV != 'dev') {
+	loc = 'http://192.168.42.1'
+}
+
+var socket = __WEBPACK_IMPORTED_MODULE_2_socket_io_client___default()(loc, {
+	forceNew: true
+})
 
 var index = 0,
 	total = 0,
 	voice = 0,
 	joined = false
+
+
+/**
+ * Initalize page
+ *
+ */
+
 
 socket.on("init", function(i, v) {
 
@@ -74790,6 +74821,13 @@ socket.on("init", function(i, v) {
 	
 })
 
+
+/**
+ * Update the index
+ *
+ */
+
+
 socket.on("index", function(i) {
 
 	index = i
@@ -74797,6 +74835,13 @@ socket.on("index", function(i) {
 	updateUI()
 	
 })
+
+
+/**
+ * Update the total
+ *
+ */
+
 
 socket.on("total", function(i) {
 	total = i
@@ -74808,6 +74853,13 @@ socket.on("total", function(i) {
 	updateUI()
 })
 
+
+/**
+ * React when a disconnection takes place
+ *
+ */
+
+
 socket.on("disconnection", function(data) {
 	if(index >= data.user.index) {
 		index--
@@ -74818,10 +74870,14 @@ socket.on("disconnection", function(data) {
 	updateUI()
 })
 
+
 /**
  * DOM events
  *
+ * Enter the player
+ *
  */
+
 
 var enter = document.getElementById('enter')
 
@@ -74830,11 +74886,10 @@ enter.addEventListener('click', function(e){
 
 	document.body.classList.add('is-soundbox')
 
-	
-
 	if(!joined){
 		socket.emit('joined')
 		document.getElementById('svg_label').innerHTML = 'resume'
+
 		joined = true
 	}else{
 		socket.emit('resume')
@@ -74847,6 +74902,13 @@ enter.addEventListener('click', function(e){
 
 	return false
 })
+
+
+/**
+ * Return to home
+ *
+ */
+
 
 var returnHome = document.getElementById('return')
 
@@ -74878,13 +74940,13 @@ function callbackFromSketch(){
 Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["a" /* sketch */])(socket, callbackFromSketch)
 
 /***/ }),
-/* 23 */
+/* 24 */
 /***/ (function(module, exports) {
 
 // removed by extract-text-webpack-plugin
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -74893,12 +74955,12 @@ Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["a" /* sketch */])(socket, callback
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return stopAudio; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_p5__ = __webpack_require__(9);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_p5___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_p5__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_p5_lib_addons_p5_sound__ = __webpack_require__(25);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_p5_lib_addons_p5_sound__ = __webpack_require__(26);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_p5_lib_addons_p5_sound___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_p5_lib_addons_p5_sound__);
 
 
 
-const CONFIG = __webpack_require__(26)
+const CONFIG = __webpack_require__(10)
 
 var pause = true
 
@@ -74919,7 +74981,6 @@ var sketch = function(socket, callback){
 			[237, 217, 130],	// yellow
 			[168, 39, 39]		// red
 		]
-	
 	
 	var voice = 0
 
@@ -74942,25 +75003,15 @@ var sketch = function(socket, callback){
 
 		circles.push( new Circle(200, 0.05) )						// 1
 		circles.push( new Circle(200, 0.1) )						// 2
-		circles.push( new Circle(250, 0.01) )						// 3
-		circles.push( new Circle(100, 0.2) )						// 4
+		circles.push( new Circle(250, 0.005) )						// 3
+		circles.push( new Circle(150, 0.2) )						// 4
 
 		socket.on('init', function(i, v) {							// index, voice
 			voice = v
 
-			var _voice = 0											// for debugging
-
-			if(v == 0 || v == 1){
-				_voice = 0
-			}
-
-			if(v == 2 || v == 3){
-				_voice = 1
-			}
-
-			circles.forEach(function(circle, i) {	
-				var src = '/sound/' + _voice + '-' + i +'.mp3'
-				var cueSrc = '/cues/' + _voice + '-' + i +'.txt'
+			circles.forEach(function(circle, i) {
+				var src = '/sound/' + voice + '-' + i +'.mp3'
+				var cueSrc = '/cues/' + voice + '-' + i +'.txt'
 				
 				loadSound(src, function(sound) {					// async
 					circle.setSound(sound)
@@ -74977,9 +75028,35 @@ var sketch = function(socket, callback){
 						callback()
 					}
 				})
-				
+
+				circle.setFragments(4)
+
+				for(var i = 0; i < 4; i++){
+					var index = i + 1
+					var fragmentSrc = '/sound/extra' + index +'.mp3'
+					let _i = i
+
+					loadSound(fragmentSrc, function(sound){
+						circle.addFragment(sound, _i)
+					})
+				}
+
+
 			})
 
+		})
+
+		//
+
+		socket.on("bang", function(v){
+			//console.log('- bang received', v)
+
+			// pick a circle
+			var index = int(random(circles.length))
+			var circle = circles[index]
+
+			// and tell it to sing a fragment on the next roundabout
+			circle.doFragment()
 		})
 
 		// reset default mouse positions
@@ -75012,7 +75089,7 @@ var sketch = function(socket, callback){
 
 		if(onCanvas(x,y)) {
 			drawSpider(circles, x, y)
-			//drawCenter(x, y)
+			drawCenter(x, y)
 
 			if(arePlayingSolo(circles)) {
 
@@ -75094,7 +75171,7 @@ var sketch = function(socket, callback){
 		fill(255, 50)
 		fill(getColor())
 		noStroke()
-		ellipse(x, y, 1, 1)
+		ellipse(x, y, 5, 5)
 	}
 
 	function drawSpider(circles, x, y) {
@@ -75150,7 +75227,8 @@ var sketch = function(socket, callback){
 
 			function draw(){
 				if(circle.silence){
-					stroke(getColorDimmed())
+					stroke(getColorDimmed(opacityOuterCircle))
+					return false
 				}
 
 				push()
@@ -75181,10 +75259,14 @@ var sketch = function(socket, callback){
 		this.timeY = 0
 
 		this.sound = null
-		this.amp = null
+		
 		this.volume = 0
-		this.mute = false
-		this.silence = false
+		this.mute = true
+		this.silence = true
+
+		this.fragments = []
+		this.fragment = null
+		this.playFragment = false
 
 		this.inside = false
 
@@ -75201,25 +75283,59 @@ var sketch = function(socket, callback){
 			if(this.isLoaded()) {
 				if(this.mute) {
 					this.sound.setVolume(0)
+
+					if(this.isSoundLoaded(this.fragment)){
+						this.fragment.setVolume(0)
+					}
 				}else{
 					this.sound.setVolume(this.volume)
+
+					if(this.isSoundLoaded(this.fragment)){
+						this.fragment.setVolume(this.volume)
+					}
 				}
-				this.amp.setInput(this.sound)
 			}
 		}
 
-		this.setSound = function(sound) {
-			this.amp = new __WEBPACK_IMPORTED_MODULE_0_p5___default.a.Amplitude()
+		this.setSound = function(sound) {			
+			var _this = this
+
 			this.sound = sound
 			this.sound.play()
-			this.amp.setInput(this.sound)
+
+			this.sound.onended(function(){
+
+				// play a fragment if is being set by the master node clock
+
+				if(_this.fragments.length > 0 && _this.playFragment) {
+
+					var fragmentIndex = int(random(_this.fragments.length))
+					var fragment = _this.fragments[ fragmentIndex ]
+
+					_this.fragment = fragment
+
+					if(this.mute) {
+						fragment.setVolume(0)
+					}else{
+						fragment.setVolume(this.volume)
+					}
+
+					_this.playFragment = false
+
+					fragment.play()
+				}
+
+				// loop it
+
+				_this.sound.play()
+			})
 		}
 
 		this.setCues = function(src){
 			var _this = this
 
 			loadStrings(src, function(data){
-				//console.log(data)
+				
 				data.forEach(function(line){
 					var parts = split(line, '\t')
 					var time = parseFloat(parts[0])
@@ -75291,15 +75407,23 @@ var sketch = function(socket, callback){
 		}
 
 		this.isLoaded = function() {
-			if(this.sound != null && this.sound.isLoaded()) {
+			return this.isSoundLoaded(this.sound)
+		}
+
+		this.isSoundLoaded = function(s){
+			if(s != null && s.isLoaded()) {
 				return true
 			}
 
 			return false
 		}
 
-		this.loop = function() {
-			this.sound.loop()
+		this.setFragments = function(len){
+			this.fragments = [len]
+		}
+
+		this.addFragment = function(sound, i){
+			this.fragments[i] = sound
 		}
 
 		this.play = function(){
@@ -75316,6 +75440,10 @@ var sketch = function(socket, callback){
 
 		this.getScaledRad = function() {
 			return this.scaledRad
+		}
+
+		this.doFragment = function(){
+			this.playFragment = true
 		}
 	}
 
@@ -75349,7 +75477,7 @@ var sketch = function(socket, callback){
 
 	function play(circles) {
 		circles.forEach(function(c) {
-			c.loop()
+			c.play()
 		})
 	}
 
@@ -75358,8 +75486,12 @@ var sketch = function(socket, callback){
 		return color(clr[0], clr[1], clr[2], opacity)
 	}
 
-	function getColorDimmed(){
-		return getColor(150)
+	function getColorDimmed(initialValue){
+		if(initialValue < 125){
+			return getColor(initialValue)	
+		}
+
+		return getColor(125)
 	}
 }
 
@@ -75380,7 +75512,7 @@ var stopAudio = function(){
 
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*! p5.sound.js v0.3.5 2017-07-28 */
@@ -85907,21 +86039,6 @@ src_app = function () {
 
 
 /***/ }),
-/* 26 */
-/***/ (function(module, exports) {
-
-module.exports = {
-	ENV: 'prod',				// 'dev' or 'prod'
-	MAX_VOICES: 4,
-	COLORS: [
-		'6060FF',				// blue
-		'00FF00',				// green
-		'FFFF00',				// yellow
-		'FF0000'				// red
-	]
-}
-
-/***/ }),
 /* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -85932,7 +86049,7 @@ module.exports = {
 
 var url = __webpack_require__(28);
 var parser = __webpack_require__(6);
-var Manager = __webpack_require__(14);
+var Manager = __webpack_require__(15);
 var debug = __webpack_require__(1)('socket.io-client');
 
 /**
@@ -86017,8 +86134,8 @@ exports.connect = lookup;
  * @api public
  */
 
-exports.Manager = __webpack_require__(14);
-exports.Socket = __webpack_require__(19);
+exports.Manager = __webpack_require__(15);
+exports.Socket = __webpack_require__(20);
 
 
 /***/ }),
@@ -86030,7 +86147,7 @@ exports.Socket = __webpack_require__(19);
  * Module dependencies.
  */
 
-var parseuri = __webpack_require__(10);
+var parseuri = __webpack_require__(11);
 var debug = __webpack_require__(1)('socket.io-client:url');
 
 /**
@@ -86669,8 +86786,8 @@ function plural(ms, n, name) {
  * Module requirements
  */
 
-var isArray = __webpack_require__(12);
-var isBuf = __webpack_require__(13);
+var isArray = __webpack_require__(13);
+var isBuf = __webpack_require__(14);
 var toString = Object.prototype.toString;
 var withNativeBlob = typeof global.Blob === 'function' || toString.call(global.Blob) === '[object BlobConstructor]';
 var withNativeFile = typeof global.File === 'function' || toString.call(global.File) === '[object FileConstructor]';
@@ -86831,12 +86948,12 @@ module.exports.parser = __webpack_require__(3);
  * Module dependencies.
  */
 
-var transports = __webpack_require__(15);
+var transports = __webpack_require__(16);
 var Emitter = __webpack_require__(2);
 var debug = __webpack_require__(1)('engine.io-client:socket');
-var index = __webpack_require__(18);
+var index = __webpack_require__(19);
 var parser = __webpack_require__(3);
-var parseuri = __webpack_require__(10);
+var parseuri = __webpack_require__(11);
 var parseqs = __webpack_require__(4);
 
 /**
@@ -86971,7 +87088,7 @@ Socket.protocol = parser.protocol; // this is an int
 
 Socket.Socket = Socket;
 Socket.Transport = __webpack_require__(8);
-Socket.transports = __webpack_require__(15);
+Socket.transports = __webpack_require__(16);
 Socket.parser = __webpack_require__(3);
 
 /**
@@ -87605,7 +87722,7 @@ try {
  */
 
 var XMLHttpRequest = __webpack_require__(7);
-var Polling = __webpack_require__(16);
+var Polling = __webpack_require__(17);
 var Emitter = __webpack_require__(2);
 var inherit = __webpack_require__(5);
 var debug = __webpack_require__(1)('engine.io-client:polling-xhr');
@@ -88584,7 +88701,7 @@ module.exports = (function() {
  * Module requirements.
  */
 
-var Polling = __webpack_require__(16);
+var Polling = __webpack_require__(17);
 var inherit = __webpack_require__(5);
 
 /**
@@ -88825,7 +88942,7 @@ var Transport = __webpack_require__(8);
 var parser = __webpack_require__(3);
 var parseqs = __webpack_require__(4);
 var inherit = __webpack_require__(5);
-var yeast = __webpack_require__(17);
+var yeast = __webpack_require__(18);
 var debug = __webpack_require__(1)('engine.io-client:websocket');
 var BrowserWebSocket = global.WebSocket || global.MozWebSocket;
 var NodeWebSocket;

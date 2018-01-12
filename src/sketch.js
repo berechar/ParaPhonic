@@ -23,7 +23,6 @@ var sketch = function(socket, callback){
 			[168, 39, 39]		// red
 		]
 	
-	
 	var voice = 0
 
 	window.preload = function() {
@@ -45,25 +44,15 @@ var sketch = function(socket, callback){
 
 		circles.push( new Circle(200, 0.05) )						// 1
 		circles.push( new Circle(200, 0.1) )						// 2
-		circles.push( new Circle(250, 0.01) )						// 3
-		circles.push( new Circle(100, 0.2) )						// 4
+		circles.push( new Circle(250, 0.005) )						// 3
+		circles.push( new Circle(150, 0.2) )						// 4
 
 		socket.on('init', function(i, v) {							// index, voice
 			voice = v
 
-			var _voice = 0											// for debugging
-
-			if(v == 0 || v == 1){
-				_voice = 0
-			}
-
-			if(v == 2 || v == 3){
-				_voice = 1
-			}
-
-			circles.forEach(function(circle, i) {	
-				var src = '/sound/' + _voice + '-' + i +'.mp3'
-				var cueSrc = '/cues/' + _voice + '-' + i +'.txt'
+			circles.forEach(function(circle, i) {
+				var src = '/sound/' + voice + '-' + i +'.mp3'
+				var cueSrc = '/cues/' + voice + '-' + i +'.txt'
 				
 				loadSound(src, function(sound) {					// async
 					circle.setSound(sound)
@@ -80,9 +69,35 @@ var sketch = function(socket, callback){
 						callback()
 					}
 				})
-				
+
+				circle.setFragments(4)
+
+				for(var i = 0; i < 4; i++){
+					var index = i + 1
+					var fragmentSrc = '/sound/extra' + index +'.mp3'
+					let _i = i
+
+					loadSound(fragmentSrc, function(sound){
+						circle.addFragment(sound, _i)
+					})
+				}
+
+
 			})
 
+		})
+
+		//
+
+		socket.on("bang", function(v){
+			//console.log('- bang received', v)
+
+			// pick a circle
+			var index = int(random(circles.length))
+			var circle = circles[index]
+
+			// and tell it to sing a fragment on the next roundabout
+			circle.doFragment()
 		})
 
 		// reset default mouse positions
@@ -115,7 +130,7 @@ var sketch = function(socket, callback){
 
 		if(onCanvas(x,y)) {
 			drawSpider(circles, x, y)
-			//drawCenter(x, y)
+			drawCenter(x, y)
 
 			if(arePlayingSolo(circles)) {
 
@@ -197,7 +212,7 @@ var sketch = function(socket, callback){
 		fill(255, 50)
 		fill(getColor())
 		noStroke()
-		ellipse(x, y, 1, 1)
+		ellipse(x, y, 5, 5)
 	}
 
 	function drawSpider(circles, x, y) {
@@ -253,7 +268,8 @@ var sketch = function(socket, callback){
 
 			function draw(){
 				if(circle.silence){
-					stroke(getColorDimmed())
+					stroke(getColorDimmed(opacityOuterCircle))
+					return false
 				}
 
 				push()
@@ -284,10 +300,14 @@ var sketch = function(socket, callback){
 		this.timeY = 0
 
 		this.sound = null
-		this.amp = null
+		
 		this.volume = 0
-		this.mute = false
-		this.silence = false
+		this.mute = true
+		this.silence = true
+
+		this.fragments = []
+		this.fragment = null
+		this.playFragment = false
 
 		this.inside = false
 
@@ -304,25 +324,59 @@ var sketch = function(socket, callback){
 			if(this.isLoaded()) {
 				if(this.mute) {
 					this.sound.setVolume(0)
+
+					if(this.isSoundLoaded(this.fragment)){
+						this.fragment.setVolume(0)
+					}
 				}else{
 					this.sound.setVolume(this.volume)
+
+					if(this.isSoundLoaded(this.fragment)){
+						this.fragment.setVolume(this.volume)
+					}
 				}
-				this.amp.setInput(this.sound)
 			}
 		}
 
-		this.setSound = function(sound) {
-			this.amp = new p5.Amplitude()
+		this.setSound = function(sound) {			
+			var _this = this
+
 			this.sound = sound
 			this.sound.play()
-			this.amp.setInput(this.sound)
+
+			this.sound.onended(function(){
+
+				// play a fragment if is being set by the master node clock
+
+				if(_this.fragments.length > 0 && _this.playFragment) {
+
+					var fragmentIndex = int(random(_this.fragments.length))
+					var fragment = _this.fragments[ fragmentIndex ]
+
+					_this.fragment = fragment
+
+					if(this.mute) {
+						fragment.setVolume(0)
+					}else{
+						fragment.setVolume(this.volume)
+					}
+
+					_this.playFragment = false
+
+					fragment.play()
+				}
+
+				// loop it
+
+				_this.sound.play()
+			})
 		}
 
 		this.setCues = function(src){
 			var _this = this
 
 			loadStrings(src, function(data){
-				//console.log(data)
+				
 				data.forEach(function(line){
 					var parts = split(line, '\t')
 					var time = parseFloat(parts[0])
@@ -394,15 +448,23 @@ var sketch = function(socket, callback){
 		}
 
 		this.isLoaded = function() {
-			if(this.sound != null && this.sound.isLoaded()) {
+			return this.isSoundLoaded(this.sound)
+		}
+
+		this.isSoundLoaded = function(s){
+			if(s != null && s.isLoaded()) {
 				return true
 			}
 
 			return false
 		}
 
-		this.loop = function() {
-			this.sound.loop()
+		this.setFragments = function(len){
+			this.fragments = [len]
+		}
+
+		this.addFragment = function(sound, i){
+			this.fragments[i] = sound
 		}
 
 		this.play = function(){
@@ -419,6 +481,10 @@ var sketch = function(socket, callback){
 
 		this.getScaledRad = function() {
 			return this.scaledRad
+		}
+
+		this.doFragment = function(){
+			this.playFragment = true
 		}
 	}
 
@@ -452,7 +518,7 @@ var sketch = function(socket, callback){
 
 	function play(circles) {
 		circles.forEach(function(c) {
-			c.loop()
+			c.play()
 		})
 	}
 
@@ -461,8 +527,12 @@ var sketch = function(socket, callback){
 		return color(clr[0], clr[1], clr[2], opacity)
 	}
 
-	function getColorDimmed(){
-		return getColor(150)
+	function getColorDimmed(initialValue){
+		if(initialValue < 125){
+			return getColor(initialValue)	
+		}
+
+		return getColor(125)
 	}
 }
 

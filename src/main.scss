@@ -12,6 +12,8 @@
 	--fontSize: 36px;
 	--fontLineHeight: 1em;
 
+	--fontSize--button: 36px;
+
 	--fontSize--small: 18px;
 	--fontLineHeight--small: 1em;
 
@@ -19,6 +21,10 @@
 	--color--voice--1: rgb(58, 117, 91); 		// green
 	--color--voice--2: rgb(237, 217, 130);		// yellow
 	--color--voice--3: rgb(168, 39, 39);		// red
+
+	@media screen and (max-height: 500px){
+		--fontSize: 18px;
+	}
 }
 
 /* Reset */
@@ -90,6 +96,8 @@ body {
 	color: var(--color--voice);
 	stroke: var(--color--stroke);
 	transition: all 1s ease;
+	font-size: var(--fontSize--button);
+	line-height: var(--fontLineHeight);
 
 	svg, #svg_label {
 		position: absolute;
@@ -181,6 +189,11 @@ canvas {
 
 	display: none;
 
+	article {
+		max-width: 500px;
+		margin: 0 auto;
+	}
+
 	h1 {
 		font-size: inherit;
 		line-height: inherit;
@@ -265,6 +278,7 @@ rect, ellipse {
 
 .item--center {
 	flex-grow: 1;
+	position: relative;
 }
 
 .small {
@@ -287,5 +301,23 @@ a {
 
 	body.is-soundbox #soundbox {
 		display: none !important;					// realy don
+	}
+}
+
+@media screen and (max-height: 500px){
+	#top {
+		top: 10px;
+	}
+
+	#bottom {
+		bottom: 10px;
+	}
+
+	.item:first-child {
+		padding-top: 10px;
+	}
+
+	.item:last-child {
+		padding-bottom: 10px;
 	}
 }
