@@ -61,13 +61,13 @@ if(CONFIG.ENV != 'dev'){
 				var time = second * 60
 				var refreshRate = time - second
 
-				console.log("Start rotating motor1 for " + time + 'ms')
+				console.log("Start rotating motor1 and motor2 for " + time + 'ms')
 
 				pyropanda.motor1(time)
 				pyropanda.motor2(time)
 
 				setInterval(function(){
-					console.log('Interval: rotating motor1 for ' + time + 'ms')
+					console.log('Interval: rotating motor1 and motor2 for ' + time + 'ms')
 
 					pyropanda.motor1(time)
 					pyropanda.motor2(time)
@@ -80,7 +80,6 @@ if(CONFIG.ENV != 'dev'){
 		})
 	}, 2000)
 }
-
 
 /**
  * Setup ticker 
@@ -123,7 +122,6 @@ ticker.metro(function(counter, v){
 
 		ticker.reset()
 	}
-
 })
 
 
@@ -131,6 +129,7 @@ ticker.metro(function(counter, v){
  * User Connection
  *
  */
+
 
 io.on('connection', function(socket){
 	var name = "user#" + id
@@ -239,7 +238,7 @@ io.on('connection', function(socket){
 		//return false
 
 		setTimeout(function(){
-			var interval = clocks.buildColorInterval(getActiveColors(), 8000, function(color){
+			var interval = clocks.buildColorInterval(getActiveColors(), 16000, function(color){
 				pyropanda.solid(color)
 			})
 
@@ -248,6 +247,11 @@ io.on('connection', function(socket){
 
 	}
 })
+
+io.on('disconnect', function(socket){
+   var user = socket.handshake.query;
+   delete storeEachSocket[user.id]
+});
 
 http.listen(3000, function(){
 	console.log('Listening on *:3000')

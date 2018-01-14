@@ -7,8 +7,7 @@ var pause = true
 
 var circles = []
 
-var myFont;
-
+var myFont
 
 var sketch = function(socket, callback){
 

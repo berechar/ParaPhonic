@@ -73152,10 +73152,10 @@ module.exports = {
 	ENV: 'prod',				// 'dev' or 'prod'
 	MAX_VOICES: 4,
 	COLORS: [
-		'6060FF',				// blue
-		'00FF00',				// green
-		'FFFF00',				// yellow
-		'FF0000'				// red
+		'0D1D16',				// blue
+		'11250D',				// green
+		'312906',				// yellow
+		'200704'				// red
 	]
 }
 
@@ -74790,7 +74790,7 @@ if(CONFIG.ENV != 'dev') {
 }
 
 var socket = __WEBPACK_IMPORTED_MODULE_2_socket_io_client___default()(loc, {
-	forceNew: true
+	forceNew: true    // changed all totals...
 })
 
 var index = 0,
@@ -74966,8 +74966,7 @@ var pause = true
 
 var circles = []
 
-var myFont;
-
+var myFont
 
 var sketch = function(socket, callback){
 
