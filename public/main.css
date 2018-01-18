@@ -58,6 +58,18 @@ body {
     --color--voice: var(--color--voice--3);
     --color--stroke: var(--color--voice--3); }
 
+@keyframes loading {
+  0% {
+    opacity: 0; }
+  100% {
+    opacity: 1; } }
+  body .proceed ellipse {
+    animation: loading 1s infinite;
+    transition: opacity 1s ease; }
+  body.is-ready ellipse {
+    animation-play-state: paused;
+    opacity: 1 !important; }
+
 .proceed {
   color: var(--color--voice);
   stroke: var(--color--stroke);
@@ -69,6 +81,8 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%); }
+  .proceed ellipse {
+    stroke: var(--color--stroke); }
 
 #top, #bottom {
   position: fixed;

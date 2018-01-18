@@ -73149,13 +73149,27 @@ module.exports = p5;
 /***/ (function(module, exports) {
 
 module.exports = {
-	ENV: 'prod',				// 'dev' or 'prod'
-	MAX_VOICES: 4,
+	ENV: 						'dev',							// 'dev' or 'prod'
+	WEMOS_ADDRESS: 				'http://192.168.42.101',		// WeMos ip address for sending GET requests to control electronics
+	INFINITE_MOTORS: 			true,							// if [true], boot system with infinite rotating motors
+	PING_INTERVAL: 				2000,
+	PING_TIMEOUT: 				5000,
+	COLOR_WHEEL: 				true,    						// if [true], roll through all singing voices after someone joins the choir
+	COLOR_WHEEL_INTERVAL: 		16000,							// time (ms) for color wheel interval
+	COLOR_WHEEL_NEW_TIMEOUT: 	1000,							// time (ms) for timeout before starting the interval
+	MAX_VOICES: 				4,
+	DEFAULT_LED_COLOR: 			'111111',						// default LED color
+	LED_COLORS: [
+								'0D1D16',						// blue
+								'11250D',						// green
+								'312906',						// yellow
+								'200704'						// red
+	],
 	COLORS: [
-		'0D1D16',				// blue
-		'11250D',				// green
-		'312906',				// yellow
-		'200704'				// red
+								[39, 129, 168],					// blue
+								[58, 117, 91], 					// green
+								[237, 217, 130],				// yellow
+								[168, 39, 39]					// red
 	]
 }
 
@@ -74781,44 +74795,69 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
 
 
+
 var CONFIG = __webpack_require__(10)
 
-var loc = 'http://localhost:3000'
-
-if(CONFIG.ENV != 'dev') {
-	loc = 'http://192.168.42.1'
-}
-
-var socket = __WEBPACK_IMPORTED_MODULE_2_socket_io_client___default()(loc, {
-	forceNew: true    // changed all totals...
-})
+var socket = __WEBPACK_IMPORTED_MODULE_2_socket_io_client___default()()
 
 var index = 0,
 	total = 0,
-	voice = 0,
-	joined = false
+	voice = 0
 
 
 /**
- * Initalize page
+ * Initalize page on first request and also on refresh
  *
  */
 
 
-socket.on("init", function(i, v) {
+Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["a" /* sketch */])(socket, callbackFromSketch)
+
+socket.on("boot", function(user) {
+	
+	console.log('boot: ', user)
+
+	index = user.index
+	total = user.index
+	voice = user.voice
+
 
 	// clear default classes
 	document.body.className = ''
 
-	index = i
-	total = i
 
-	voice = v
+	// load the sketch with data
 
-	updateVoiceUI(v)
+	window.loadSketch(user)
+
+
+	// update document style
+	
+	document.body.classList.add('is-voice-' + voice)
+
+
+	// bind default click event to button
+
+	// clear events (re-connections bind the same event twice!)
+	document.getElementById('enter').removeEventListener('click', joinEvent)
+	document.getElementById('enter').removeEventListener('click', resumeEvent)
+
+	document.getElementById('enter').addEventListener('click', loadEvent)
+
+
+	// bind default click to header
+
+	document.getElementById('back').addEventListener('click', backEvent)
+
+	
+	// update label (default text)
+
+	updateButtonLabel('loading')
+
+
+	// Update the user interface
 
 	updateUI()
-	
 })
 
 
@@ -74829,11 +74868,9 @@ socket.on("init", function(i, v) {
 
 
 socket.on("index", function(i) {
-
 	index = i
 
 	updateUI()
-	
 })
 
 
@@ -74861,6 +74898,7 @@ socket.on("total", function(i) {
 
 
 socket.on("disconnection", function(data) {
+
 	if(index >= data.user.index) {
 		index--
 	}
@@ -74871,28 +74909,107 @@ socket.on("disconnection", function(data) {
 })
 
 
-/**
- * DOM events
- *
- * Enter the player
- *
- */
+function updateUI() {
+	document.getElementById('index').innerHTML = index
+	document.getElementById('total').innerHTML = total
+}
+
+function callbackFromSketch(){
+	// update document style
+
+	document.body.classList.add('is-ready')
 
 
-var enter = document.getElementById('enter')
+	// bind new click event to button
 
-enter.addEventListener('click', function(e){
+	var enter = document.getElementById('enter')
+	enter.removeEventListener('click', loadEvent)
+	enter.addEventListener('click', joinEvent)
+
+
+	// update the label
+
+	updateButtonLabel('join the<br/>choir')									// button text when loading is complete
+
+
+	// callback to server (retrieve current playheads (?))
+
+	socket.emit('ready')
+}
+
+var loadEvent = function(e){
+	e.preventDefault()
+	console.log("Click on Loading")
+}
+
+var joinEvent = function(e){
+	startSketch(e, function(){
+		console.log("Joined the choir")
+
+
+		// update document style
+
+		document.body.classList.add('is-soundbox')
+
+
+		// notify server
+		
+		socket.emit('joined')
+
+
+		// bind new click event to button
+
+		document.getElementById('enter').removeEventListener('click', joinEvent)
+		document.getElementById('enter').addEventListener('click', resumeEvent)
+
+
+		// update the label
+
+		updateButtonLabel('resume')
+
+	})
+}
+
+var resumeEvent = function(e){
+	startSketch(e, function(){
+		console.log("Resumed the choir")
+
+		// update document style
+
+		document.body.classList.add('is-soundbox')
+
+		// notify server
+
+		socket.emit('resume')
+	})
+}
+
+var backEvent = function(e){
 	e.preventDefault()
 
-	document.body.classList.add('is-soundbox')
+	console.log("Left the choir")
 
-	if(!joined){
-		socket.emit('joined')
-		document.getElementById('svg_label').innerHTML = 'resume'
 
-		joined = true
-	}else{
-		socket.emit('resume')
+	// update document style
+
+	document.body.classList.remove('is-soundbox')
+
+
+	// notify server
+
+	socket.emit("left")
+
+
+	// Stop the audio from playing
+
+	Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["c" /* stopAudio */])()
+} 
+
+function startSketch(e, fn){
+	e.preventDefault()
+
+	if(fn && typeof(fn) === "function") {
+		fn()
 	}
 
 	// the sketch is by default paused to prevent sound from home
@@ -74900,44 +75017,12 @@ enter.addEventListener('click', function(e){
 
 	Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["b" /* startAudio */])()
 
-	return false
-})
-
-
-/**
- * Return to home
- *
- */
-
-
-var returnHome = document.getElementById('return')
-
-returnHome.addEventListener('click', function(e){
-	e.preventDefault()
-
-	document.body.classList.remove('is-soundbox')
-
-	socket.emit("left")
-
-	Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["c" /* stopAudio */])()
-
-	return false
-})
-
-function updateUI() {
-	document.getElementById('index').innerHTML = index
-	document.getElementById('total').innerHTML = total
+	updateUI()	
 }
 
-function updateVoiceUI(v){
-	document.body.classList.add('is-voice-' + v)
+function updateButtonLabel(str){
+	document.getElementById('svg_label').innerHTML = str
 }
-
-function callbackFromSketch(){
-	document.body.classList.add('is-ready')
-}
-
-Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["a" /* sketch */])(socket, callbackFromSketch)
 
 /***/ }),
 /* 24 */
@@ -74962,30 +75047,21 @@ Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["a" /* sketch */])(socket, callback
 
 const CONFIG = __webpack_require__(10)
 
+var MARGIN_WIDTH = 50
+var MAX_WIDTH = 500 + MARGIN_WIDTH
+var ASPECT_RATIO_HEIGHT = 1.11
+	
+var voice = 0
 var pause = true
 
 var circles = []
 
 var myFont
+var fontSize = 36
 
 var sketch = function(socket, callback){
-
-	var MARGIN_WIDTH = 50
-	var MAX_WIDTH = 500 + MARGIN_WIDTH
-	var ASPECT_RATIO_HEIGHT = 1.11
-
-	var COLORS = [
-			[39, 129, 168],		// blue
-			[58, 117, 91], 		// green
-			[237, 217, 130],	// yellow
-			[168, 39, 39]		// red
-		]
-	
-	var voice = 0
-
 	window.preload = function() {
 		soundFormats('mp3')
-  		myFont = loadFont('/font/naturamedium-regular-webfont.ttf');
 	}
 
 	window.windowResized = function() {
@@ -74993,60 +75069,14 @@ var sketch = function(socket, callback){
 	  	resizeCanvas(dim.w, dim.h)
 	}
 
-	window.setup = function () {
+	window.setup = function() {
 		var dim = getCanvasDimensions()
 		createCanvas(dim.w, dim.h)
 
-		textFont(myFont);
-		textSize(36)
-
-		circles.push( new Circle(200, 0.05) )						// 1
-		circles.push( new Circle(200, 0.1) )						// 2
-		circles.push( new Circle(250, 0.005) )						// 3
-		circles.push( new Circle(150, 0.2) )						// 4
-
-		socket.on('init', function(i, v) {							// index, voice
-			voice = v
-
-			circles.forEach(function(circle, i) {
-				var src = '/sound/' + voice + '-' + i +'.mp3'
-				var cueSrc = '/cues/' + voice + '-' + i +'.txt'
-				
-				loadSound(src, function(sound) {					// async
-					circle.setSound(sound)
-					circle.setCues(cueSrc)
-
-					if(allLoaded(circles)) {
-						// callback to server (retrieve current playheads (?))
-						socket.emit('callback')
-
-						// play all circles (future: with current playheads?)
-						play(circles)
-
-						// callback to index.js (fade-in with CSS class)
-						callback()
-					}
-				})
-
-				circle.setFragments(4)
-
-				for(var i = 0; i < 4; i++){
-					var index = i + 1
-					var fragmentSrc = '/sound/extra' + index +'.mp3'
-					let _i = i
-
-					loadSound(fragmentSrc, function(sound){
-						circle.addFragment(sound, _i)
-					})
-				}
-
-
-			})
-
-		})
 
 		//
 
+		/*
 		socket.on("bang", function(v){
 			//console.log('- bang received', v)
 
@@ -75057,11 +75087,75 @@ var sketch = function(socket, callback){
 			// and tell it to sing a fragment on the next roundabout
 			circle.doFragment()
 		})
+		*/
 
 		// reset default mouse positions
 
 		mouseX = -1
 		mouseY = -1
+	}
+
+
+	/**
+	 * This function is always called whenever the connection is (re)-connected
+	 *
+	 * This is true for the following tested browsers: Firefox, Chrome, Safari
+	 *
+	 */
+
+	window.loadSketch = function(user){
+  		myFont = loadFont('/font/naturamedium-regular-webfont.ttf')
+
+  		textFont(myFont);
+		textSize(fontSize)
+
+		voice = user.voice
+
+		circles = []													// reset the circles
+
+		circles.push( new Circle(1, 200, 0.05) )						// 1
+		circles.push( new Circle(2, 200, 0.1) )							// 2
+		circles.push( new Circle(3, 250, 0.005) )						// 3
+		circles.push( new Circle(4, 150, 0.2) )							// 4
+
+		circles.forEach(function(circle, i) {
+			var src = '/sound/' + voice + '-' + i +'.mp3'
+			var cueSrc = '/cues/' + voice + '-' + i +'.txt'
+
+			loadSound(src, function(sound) {					// async
+				console.log("Sound loaded: " + src)
+				circle.setSound(sound)
+
+				loadStrings(cueSrc, function(data){
+					console.log("Cue loaded: " + cueSrc)
+					circle.setCues(data)
+
+					if(allLoaded(circles)) {
+						console.log("All loaded")
+
+						// when ALL is loaded, make the front-end button active!
+						// callback to index.js (fade-in with CSS class)
+						callback()
+					}
+				})
+			})
+
+			/*
+			circle.setFragments(4)
+
+			for(var i = 0; i < 4; i++){
+				var index = i + 1
+				var fragmentSrc = '/sound/extra' + index +'.mp3'
+				let _i = i
+
+				loadSound(fragmentSrc, function(sound){
+					circle.addFragment(sound, _i)
+				})
+			}
+			*/
+
+
+		})	
 	}
 
 	window.draw = function() {
@@ -75081,7 +75175,7 @@ var sketch = function(socket, callback){
 
 		drawText()
 
-		if(pause){
+		if(pause) {
 			muteCircles(true)	
 			return false
 		}
@@ -75131,8 +75225,8 @@ var sketch = function(socket, callback){
 	function drawText() {
 		var padding = 10
 
-		var top = 15 + padding/2
-		var bottom = height - 10 - padding * 2
+		var top = 30 + padding/2
+		var bottom = height + 10 - padding * 2
 		
 		var left = padding
 		var right = width - padding
@@ -75160,10 +75254,12 @@ var sketch = function(socket, callback){
 
 		rect(0, 0, width - 1, height - 2)
 		
-		circles[0].draw(stepX * 3, stepY * 2)
-		circles[1].draw(stepX * 7, stepY * 3)
-		circles[2].draw(stepX * 3, stepY * 6)
-		circles[3].draw(stepX * 7, stepY * 7)
+		if(circles.length > 0){
+			circles[0].draw(stepX * 3, stepY * 2)
+			circles[1].draw(stepX * 7, stepY * 3)
+			circles[2].draw(stepX * 3, stepY * 6)
+			circles[3].draw(stepX * 7, stepY * 7)
+		}
 	}
 
 	function drawCenter(x, y) {
@@ -75246,9 +75342,11 @@ var sketch = function(socket, callback){
 		return false
 	}
 
-	function Circle(rad, acc) {	
+	function Circle(id, rad, acc) {	
+		this.id = id
 		this.rad = rad
 		this.acc = acc
+
 		this.rot = 0
 
 		this.x = 0
@@ -75270,6 +75368,8 @@ var sketch = function(socket, callback){
 		this.inside = false
 
 		this.scaledRad = rad * scalePercent()
+
+		this.cuesLoaded = false
 	  
 		this.update = function(x, y) {
 			this.rot += this.acc
@@ -75296,16 +75396,26 @@ var sketch = function(socket, callback){
 			}
 		}
 
-		this.setSound = function(sound) {			
-			var _this = this
+		this.setSound = function(_sound) {			
+			this.sound = _sound
 
-			this.sound = sound
-			this.sound.play()
+			/*
+			 * IMPORTANT
+			 *
+			 *  this function is also called when you start from the beginning!
+			 *
+			 *
+			 */
+			
+			this.sound.onended(() => {
+				if(pause){
+					return false
+				}
 
-			this.sound.onended(function(){
-
+				console.log('Circle #' + this.id + ' ended')
 				// play a fragment if is being set by the master node clock
 
+				/*
 				if(_this.fragments.length > 0 && _this.playFragment) {
 
 					var fragmentIndex = int(random(_this.fragments.length))
@@ -75323,29 +75433,31 @@ var sketch = function(socket, callback){
 
 					fragment.play()
 				}
+				*/
 
-				// loop it
-
-				_this.sound.play()
+				this.play()
+				console.log('Circle #' + this.id + ' looped')
 			})
+			
+
 		}
 
-		this.setCues = function(src){
+		this.setCues = function(data){
+			// this function presumes that the sound is already loaded
 			var _this = this
-
-			loadStrings(src, function(data){
+	
+			data.forEach(function(line){
+				var parts = split(line, '\t')
+				var time = parseFloat(parts[0])
+				var val = parts[1]
 				
-				data.forEach(function(line){
-					var parts = split(line, '\t')
-					var time = parseFloat(parts[0])
-					var val = parts[1]
-					
-					_this.sound.addCue(time, _this.fadeStroke, {
-						_this: _this,
-						val: val
-					})
+				_this.sound.addCue(time, _this.fadeStroke, {
+					_this: _this,
+					val: val
 				})
 			})
+
+			this.cuesLoaded = true
 		}
 
 		this.fadeStroke = function(data){
@@ -75372,17 +75484,9 @@ var sketch = function(socket, callback){
 			this.timeX = - cos(this.rot) * rad / 2
 			this.timeY = - sin(this.rot) * rad / 2
 
-			noFill()
-
-			if(this.inside) {
-				fill(getColor())
-				textAlign(CENTER, CENTER)
-				strokeWeight(0)
-				//text("solo", x, y)
-				noFill()
-			}
-
+			
 			// Draw it
+			noFill()
 			stroke(getColor())
 			strokeWeight(1)
 
@@ -75406,7 +75510,11 @@ var sketch = function(socket, callback){
 		}
 
 		this.isLoaded = function() {
-			return this.isSoundLoaded(this.sound)
+			if(this.isSoundLoaded(this.sound) && this.cuesLoaded){
+				return true
+			}
+
+			return false
 		}
 
 		this.isSoundLoaded = function(s){
@@ -75426,6 +75534,7 @@ var sketch = function(socket, callback){
 		}
 
 		this.play = function(){
+			//this.sound.loop()
 			this.sound.play()
 		}
 
@@ -75481,7 +75590,7 @@ var sketch = function(socket, callback){
 	}
 
 	function getColor(opacity = 255) {
-		var clr = COLORS[voice]
+		var clr = CONFIG.COLORS[voice]
 		return color(clr[0], clr[1], clr[2], opacity)
 	}
 

@@ -2,15 +2,9 @@ const CONFIG = require('./config.js')
 var request = require("request")			// request for AJAX POST request to pyropanda
 
 module.exports = {
-	init: function(){
-		console.log("init")
-	},
 	send: function(urlSegment = '/', data = {}, callback){
-		if(CONFIG.DEV == 'dev'){
-			return false	
-		}
 		
-		var url = 'http://192.168.42.101' + urlSegment
+		var url = CONFIG.WEMOS_ADDRESS + urlSegment
 
 		request({
 			url: url,

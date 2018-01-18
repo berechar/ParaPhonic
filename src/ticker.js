@@ -1,4 +1,7 @@
-const clocks = require('./clocks.js')
+/**
+ * Ticker
+ *
+ */
 
 module.exports = {	
  	counter: 0,
