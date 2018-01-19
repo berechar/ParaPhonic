@@ -73151,6 +73151,7 @@ module.exports = p5;
 module.exports = {
 	ENV: 						'production',					// 'dev' or 'production'
 	WEMOS_ADDRESS: 				'http://192.168.42.101',		// WeMos ip address for sending GET requests to control electronics
+	DEBUG: 						false,
 	SKIP_PANDA: 				true,							// while doing production but not wanting to deal with pyropanda
 	INFINITE_MOTORS: 			true,							// if [true], boot system with infinite rotating motors
 
@@ -74825,14 +74826,17 @@ Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["b" /* sketch */])(socket, callback
 
 
 
-socket.on('connect', function(){
-	if(CONFIG.ENV == 'dev'){
+socket.on('connect', function() {
+
+	if(CONFIG.ENV == 'dev') {
 		console.log('(Re)Connected to server')
 	}
+
 })
 
-socket.on('disconnect', function(){
-	if(CONFIG.ENV == 'dev'){
+socket.on('disconnect', function() {
+
+	if(CONFIG.ENV == 'dev') {
 		console.log('Disconnected from server (shutdown sounds if any)')
 	}
 
@@ -74840,7 +74844,7 @@ socket.on('disconnect', function(){
 })
 
 socket.on("boot", function(user) {
-	if(CONFIG.ENV == 'dev'){
+	if(CONFIG.ENV == 'dev') {
 		console.log('Boot: ', user)
 	}
 
@@ -75037,35 +75041,30 @@ function startSketch(e, fn){
 	// updateCounterLabel()	
 }
 
-function orientationEvents(){
+function orientationEvents() {
 	var screenOrientation = getOrientation()
 
-	window.onresize = function(event){
+	window.onresize = function(event) {
 		 var _screenOrientation = getOrientation()
 
-		 if(screenOrientation != _screenOrientation){
-		 	//console.log("Orientation change:" + screenOrientation)
+		 if(screenOrientation != _screenOrientation) {
 
-		 	if(screenOrientation == 0){															// landscape
-		 		if(CONFIG.ENV == 'dev'){
+		 	if(screenOrientation == 0) {														// landscape
+
+		 		if(CONFIG.ENV == 'dev') {
 		 			console.log("Orientation: landscape")
 		 		}
 
-		 		if(active){
-		 			if(CONFIG.ENV == 'dev'){
-		 				//console.log("is singing > landscape orientation > pause singing!")
-		 			}
-
+		 		if(active) {
 		 			Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["a" /* pauseAudio */])()
 		 		}
 
-		 	}else if(screenOrientation == 90){													// portrait
-		 		if(CONFIG.ENV == 'dev'){
+		 	}else if(screenOrientation == 90) {													// portrait
+		 		if(CONFIG.ENV == 'dev') {
 		 			console.log("Orientation: portrait")
 		 		}
 
-		 		if(active){
-		 			//console.log("is singing > landscape orientation > stop singing > portrait orientation > start singing!")
+		 		if(active) {
 		 			Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["c" /* startAudio */])()
 		 		}
 		 	}
@@ -75074,12 +75073,12 @@ function orientationEvents(){
 		 screenOrientation = _screenOrientation
 	}
 
-	function getOrientation(){
+	function getOrientation() {
 		return window.innerWidth > window.innerHeight? 90 : 0
 	}
 }
 
-function updateButtonLabel(str){
+function updateButtonLabel(str) {
 	document.getElementById('svg_label').innerHTML = str
 }
 
@@ -75187,25 +75186,80 @@ var sketch = function(socket, callback){
 			var src = '/sound/' + voice + '-' + i +'.mp3'
 			var cueSrc = '/cues/' + voice + '-' + i +'.txt'
 
+			/*
 			loadSound(src, function(sound) {					// async
-				console.log("Sound loaded: " + src)
+
+				if(CONFIG.DEBUG) {
+					console.log("Sound loaded: " + src)
+				}
+
 				circle.setSound(sound)
 
 				loadStrings(cueSrc, function(data){
-					console.log("Cue loaded: " + cueSrc)
+					
+					if(CONFIG.DEBUG) {
+						console.log("Cue loaded: " + cueSrc)
+					}
+
 					circle.setCues(data)
 
 					if(allLoaded(circles)) {
-						console.log("All loaded")
+						if(CONFIG.DEBUG) {
+							console.log("All loaded")
+						}
 
 						// when ALL is loaded, make the front-end button active!
-						// callback to index.js (fade-in with CSS class)
+
 						callback()
 					}
 				})
 			}, function(){
 				console.log('error while loading: ' + src )
 			})
+			*/
+
+
+			loadCircle(src, cueSrc)
+
+			function loadCircle(src, cueSrc){
+				loadSound(src, function(sound) {					// async
+
+					if(CONFIG.DEBUG) {
+						console.log("Sound loaded: " + src)
+					}
+
+					circle.setSound(sound)
+
+					loadStrings(cueSrc, function(data){
+						
+						if(CONFIG.DEBUG) {
+							console.log("Cue loaded: " + cueSrc)
+						}
+
+						circle.setCues(data)
+
+						if(allLoaded(circles)) {
+							if(CONFIG.DEBUG) {
+								console.log("All loaded")
+							}
+
+							// when ALL is loaded, make the front-end button active!
+
+							callback()
+						}
+					})
+				}, function(){
+					
+					if(CONFIG.DEBUG) {
+						console.log('error while loading: ' + src )
+						console.log('reloading ' + src)
+					}
+
+					loadCircle(src, cueSrc)
+				})
+			}
+
+
 
 			/*
 			circle.setFragments(4)

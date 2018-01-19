@@ -78,25 +78,80 @@ var sketch = function(socket, callback){
 			var src = '/sound/' + voice + '-' + i +'.mp3'
 			var cueSrc = '/cues/' + voice + '-' + i +'.txt'
 
+			/*
 			loadSound(src, function(sound) {					// async
-				console.log("Sound loaded: " + src)
+
+				if(CONFIG.DEBUG) {
+					console.log("Sound loaded: " + src)
+				}
+
 				circle.setSound(sound)
 
 				loadStrings(cueSrc, function(data){
-					console.log("Cue loaded: " + cueSrc)
+					
+					if(CONFIG.DEBUG) {
+						console.log("Cue loaded: " + cueSrc)
+					}
+
 					circle.setCues(data)
 
 					if(allLoaded(circles)) {
-						console.log("All loaded")
+						if(CONFIG.DEBUG) {
+							console.log("All loaded")
+						}
 
 						// when ALL is loaded, make the front-end button active!
-						// callback to index.js (fade-in with CSS class)
+
 						callback()
 					}
 				})
 			}, function(){
 				console.log('error while loading: ' + src )
 			})
+			*/
+
+
+			loadCircle(src, cueSrc)
+
+			function loadCircle(src, cueSrc){
+				loadSound(src, function(sound) {					// async
+
+					if(CONFIG.DEBUG) {
+						console.log("Sound loaded: " + src)
+					}
+
+					circle.setSound(sound)
+
+					loadStrings(cueSrc, function(data){
+						
+						if(CONFIG.DEBUG) {
+							console.log("Cue loaded: " + cueSrc)
+						}
+
+						circle.setCues(data)
+
+						if(allLoaded(circles)) {
+							if(CONFIG.DEBUG) {
+								console.log("All loaded")
+							}
+
+							// when ALL is loaded, make the front-end button active!
+
+							callback()
+						}
+					})
+				}, function(){
+					
+					if(CONFIG.DEBUG) {
+						console.log('error while loading: ' + src )
+						console.log('reloading ' + src)
+					}
+
+					loadCircle(src, cueSrc)
+				})
+			}
+
+
 
 			/*
 			circle.setFragments(4)

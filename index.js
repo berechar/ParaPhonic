@@ -227,7 +227,7 @@ ticker.metro(function(counter, v){
 
 
 function connectIO(){
-	console.log("Called Socket.IO events")
+	console.log("Called connectIO()")
 
 	io.on('connection', function(socket){
 		var id = socket.id
@@ -251,7 +251,7 @@ function connectIO(){
 		})
 
 		socket.on("ready", function(){
-			if(CONFIG.ENV == 'dev'){
+			if(CONFIG.DEBUG) {
 				console.log('Sketch loaded and ready')
 			}
 		})
@@ -294,45 +294,53 @@ function disconnect(users, id){
 	voices[user.voice]--
 
 
-	// if the user was singing (thus active), decrement the total_singers
+	// if the user was singing (thus active), decrement the total_singers and update every active indices
 
 	if(user.active) {
 		total_singers--
+
 		io.emit("total", total_singers)
 
 		updateUserIndices(user)
 	}
 
+
 	// remove the user
+
 	users[id] = null
 
+
 	// and update the colors
+
 	updatePyroPanda()
 }
 
-function leaveTheChoir(user){
+function leaveTheChoir(user) {
 	user.active = false								// make the user not active
 	updateUserIndices(user)							// and update all users and their indices
 
-	total_singers--
+	total_singers--									// update the total amount of singers
 	io.emit("total", total_singers)
+
+
+	// and update the colors
 
 	updatePyroPanda()
 }
 
-function updateUserIndices(left_user){
+function updateUserIndices(paused_user) {
 	// update all indices of all users
 	// and broadcast them to the clients
 
 	var arr = util.getObjAsArray(users)
-	var left_index = left_user.index
+	var _index = paused_user.index
 
 	arr.forEach(function(u) {
 		if(u != null && u.active) {
 			var id = u.id
 			var index = u.index
 
-			if(index > left_index){
+			if(index > _index){
 				index -= 1
 
 				// save it
@@ -352,8 +360,9 @@ function joinTheChoir(socket, user){
 	user.index = total_singers						// save it to this user (used when disconnecting)
 	user.active = true								// and make it active to pick up it's color for pyropanda
 
-	io.emit("total", total_singers)					// notify all clients of the new amount of singers
 	socket.emit("index", total_singers)				// notify the client of the index
+	io.emit("total", total_singers)					// notify all clients of the new amount of singers
+	
 
 	/*
 	if(total_singers == 1){							// reset ticker if this is the first connection
@@ -404,7 +413,7 @@ function updatePyroPanda(color) {
 
 	if(color != null) {
 
-		if(CONFIG.ENV == 'dev') {
+		if(CONFIG.DEBUG) {
 			console.log('new color: ' + color)
 		}
 
@@ -412,12 +421,12 @@ function updatePyroPanda(color) {
 		time = CONFIG.COLOR_WHEEL_NEW_TIMEOUT
 	}
 
-	if(CONFIG.COLOR_WHEEL){
+	if(CONFIG.COLOR_WHEEL) {
 
 		setTimeout(function() {
 			var interval = clocks.buildColorInterval(getSingingColors(), CONFIG.COLOR_WHEEL_INTERVAL, function(color) {
 
-				if(CONFIG.ENV == 'dev') {
+				if(CONFIG.DEBUG) {
 					console.log('color interval: ' + color)
 				}
 

@@ -24,14 +24,17 @@ sketch(socket, callbackFromSketch)
 
 
 
-socket.on('connect', function(){
-	if(CONFIG.ENV == 'dev'){
+socket.on('connect', function() {
+
+	if(CONFIG.ENV == 'dev') {
 		console.log('(Re)Connected to server')
 	}
+
 })
 
-socket.on('disconnect', function(){
-	if(CONFIG.ENV == 'dev'){
+socket.on('disconnect', function() {
+
+	if(CONFIG.ENV == 'dev') {
 		console.log('Disconnected from server (shutdown sounds if any)')
 	}
 
@@ -39,7 +42,7 @@ socket.on('disconnect', function(){
 })
 
 socket.on("boot", function(user) {
-	if(CONFIG.ENV == 'dev'){
+	if(CONFIG.ENV == 'dev') {
 		console.log('Boot: ', user)
 	}
 
@@ -236,35 +239,30 @@ function startSketch(e, fn){
 	// updateCounterLabel()	
 }
 
-function orientationEvents(){
+function orientationEvents() {
 	var screenOrientation = getOrientation()
 
-	window.onresize = function(event){
+	window.onresize = function(event) {
 		 var _screenOrientation = getOrientation()
 
-		 if(screenOrientation != _screenOrientation){
-		 	//console.log("Orientation change:" + screenOrientation)
+		 if(screenOrientation != _screenOrientation) {
 
-		 	if(screenOrientation == 0){															// landscape
-		 		if(CONFIG.ENV == 'dev'){
+		 	if(screenOrientation == 0) {														// landscape
+
+		 		if(CONFIG.ENV == 'dev') {
 		 			console.log("Orientation: landscape")
 		 		}
 
-		 		if(active){
-		 			if(CONFIG.ENV == 'dev'){
-		 				//console.log("is singing > landscape orientation > pause singing!")
-		 			}
-
+		 		if(active) {
 		 			pauseAudio()
 		 		}
 
-		 	}else if(screenOrientation == 90){													// portrait
-		 		if(CONFIG.ENV == 'dev'){
+		 	}else if(screenOrientation == 90) {													// portrait
+		 		if(CONFIG.ENV == 'dev') {
 		 			console.log("Orientation: portrait")
 		 		}
 
-		 		if(active){
-		 			//console.log("is singing > landscape orientation > stop singing > portrait orientation > start singing!")
+		 		if(active) {
 		 			startAudio()
 		 		}
 		 	}
@@ -273,12 +271,12 @@ function orientationEvents(){
 		 screenOrientation = _screenOrientation
 	}
 
-	function getOrientation(){
+	function getOrientation() {
 		return window.innerWidth > window.innerHeight? 90 : 0
 	}
 }
 
-function updateButtonLabel(str){
+function updateButtonLabel(str) {
 	document.getElementById('svg_label').innerHTML = str
 }
 
