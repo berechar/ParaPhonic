@@ -304,6 +304,10 @@ function disconnect(users, id){
 	if(user.active) {
 		total_singers--
 
+		if(total_singers < 0){
+			total_singers = 0
+		}
+
 		io.emit("total", total_singers)
 
 		updateUserIndices(user)
@@ -324,7 +328,12 @@ function leaveTheChoir(user) {
 	user.active = false								// make the user not active
 	updateUserIndices(user)							// and update all users and their indices
 
-	total_singers--									// update the total amount of singers
+	total_singers--
+
+	if(total_singers < 0){
+		total_singers = 0
+	}
+										// update the total amount of singers
 	io.emit("total", total_singers)
 
 
@@ -337,23 +346,24 @@ function updateUserIndices(paused_user) {
 	// update all indices of all users
 	// and broadcast them to the clients
 
-	var arr = util.getObjAsArray(users)
 	var _index = paused_user.index
 
-	arr.forEach(function(u) {
-		if(u != null && u.active) {
-			var id = u.id
-			var index = u.index
+	ActiveUsers(function(u){
+		var id = u.id
+		var index = u.index
 
-			if(index > _index){
-				index -= 1
+		if(index > _index){
+			index -= 1
 
-				// save it
-				users[id].index = index
-
-				// broadcast it
-				io.to(id).emit("index", index)
+			if(index < 1){
+				index = 1
 			}
+
+			// save it
+			users[id].index = index
+
+			// broadcast it
+			io.to(id).emit("index", index)
 		}
 	})
 }
@@ -375,6 +385,7 @@ function joinTheChoir(socket, user){
 	}
 	*/
 
+
 	updatePyroPanda(util.getColor(user.voice))
 }
 
@@ -384,37 +395,44 @@ function joinTheChoir(socket, user){
  */
 
 function getSingingColors() {
-	// get users as array
-
-	var arr = util.getObjAsArray(users)
 	var colors = []
 
-
-	// fetch colors of active users
-
-	arr.forEach(function(u) {
-
-		if(u != null && u.active) {
-			var color = util.getColor(u.voice)
-			colors.push(color)
-		}
-
+	ActiveUsers(function(u){
+		var color = util.getColor(u.voice)
+		colors.push(color)
 	})
 
-
-	// have always a light on
-
-	if(colors.length == 0) {
-		colors.push(CONFIG.DEFAULT_LED_COLOR)
-	}
-
 	return colors
+}
+
+function ActiveUsers(fn){
+	var arr = util.getObjAsArray(users)
+	//var active = []
+
+	arr.forEach(function(u) {
+		if(u != null && u.active) {
+			if(fn && typeof(fn) === 'function'){
+				fn(u)
+			}
+		}
+	})
 }
 
 function updatePyroPanda(color) {
 	clocks.clearIntervals()
 
+
+	// have always a light on
+
+	if(getSingingColors().length == 0) {
+		pyropanda.solid(CONFIG.DEFAULT_LED_COLOR)
+		return false
+	}
+
+
 	var time = 0
+
+	// whenever someone joins the choir, it's voice color is being given as an argument
 
 	if(color != null) {
 
@@ -425,6 +443,8 @@ function updatePyroPanda(color) {
 		pyropanda.solid(color)
 		time = CONFIG.COLOR_WHEEL_NEW_TIMEOUT
 	}
+
+	
 
 	if(CONFIG.COLOR_WHEEL) {
 

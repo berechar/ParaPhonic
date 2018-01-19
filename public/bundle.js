@@ -73151,7 +73151,7 @@ module.exports = p5;
 module.exports = {
 	ENV: 						'production',					// 'dev' or 'production'
 	WEMOS_ADDRESS: 				'http://192.168.42.101',		// WeMos ip address for sending GET requests to control electronics
-	DEBUG: 						false,
+	DEBUG: 						true,
 	SKIP_PANDA: 				true,							// while doing production but not wanting to deal with pyropanda
 	INFINITE_MOTORS: 			true,							// if [true], boot system with infinite rotating motors
 
@@ -74816,6 +74816,8 @@ var index = 0,
 	voice = 0,
 	active = false
 
+var button = ''
+
 
 /**
  * Initalize page on first request and also on refresh
@@ -74828,7 +74830,7 @@ Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["b" /* sketch */])(socket, callback
 
 socket.on('connect', function() {
 
-	if(CONFIG.ENV == 'dev') {
+	if(CONFIG.DEBUG) {
 		console.log('(Re)Connected to server')
 	}
 
@@ -74836,7 +74838,7 @@ socket.on('connect', function() {
 
 socket.on('disconnect', function() {
 
-	if(CONFIG.ENV == 'dev') {
+	if(CONFIG.DEBUG) {
 		console.log('Disconnected from server (shutdown sounds if any)')
 	}
 
@@ -74844,7 +74846,7 @@ socket.on('disconnect', function() {
 })
 
 socket.on("boot", function(user) {
-	if(CONFIG.ENV == 'dev') {
+	if(CONFIG.DEBUG) {
 		console.log('Boot: ', user)
 	}
 
@@ -74852,6 +74854,7 @@ socket.on("boot", function(user) {
 	total = user.index
 	voice = user.voice
 	active = false
+
 
 
 	// clear default classes
@@ -74872,10 +74875,10 @@ socket.on("boot", function(user) {
 	// bind default click event to button
 
 	// clear events (re-connections bind the same event twice!)
-	document.getElementById('enter').removeEventListener('click', joinEvent)
-	document.getElementById('enter').removeEventListener('click', resumeEvent)
-
-	document.getElementById('enter').addEventListener('click', loadEvent)
+	button = document.getElementById('enter')
+	button.removeEventListener('click', joinEvent)
+	button.removeEventListener('click', resumeEvent)
+	button.addEventListener('click', loadEvent)
 
 
 	// bind default click to header
@@ -74933,9 +74936,12 @@ function callbackFromSketch(){
 
 	// bind new click event to button
 
-	var enter = document.getElementById('enter')
-	enter.removeEventListener('click', loadEvent)
-	enter.addEventListener('click', joinEvent)
+	button.removeEventListener('click', loadEvent)
+
+
+	// callback to server (retrieve current playheads (?))
+
+	socket.emit('ready')
 
 
 	// update the label
@@ -74943,9 +74949,9 @@ function callbackFromSketch(){
 	updateButtonLabel('join the<br/>choir')									// button text when loading is complete
 
 
-	// callback to server (retrieve current playheads (?))
+	// add new click event to join the choir
 
-	socket.emit('ready')
+	button.addEventListener('click', joinEvent)
 }
 
 var loadEvent = function(e){
@@ -74962,15 +74968,18 @@ var joinEvent = function(e){
 			console.log("Joined the choir")
 		}
 
+		// immediatly remove this click event so that it can't be triggered twice
+
+		button.removeEventListener('click', joinEvent)
+
+
 		// notify server
 		
 		socket.emit('joined')
 
+		// add the new click event
 
-		// bind new click event to button
-
-		document.getElementById('enter').removeEventListener('click', joinEvent)
-		document.getElementById('enter').addEventListener('click', resumeEvent)
+		button.addEventListener('click', resumeEvent)
 
 
 		// update the label
@@ -75747,7 +75756,7 @@ var stopAudio = function(){
 	pause = true														// needed to prevent the loop from kicking in
 
 	circles.forEach(function(c) {
-		c.sound.stop()
+		c.sound.pause()													// Safari throws an error when calling stop() ...
 	})
 }
 

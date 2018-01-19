@@ -639,7 +639,7 @@ var stopAudio = function(){
 	pause = true														// needed to prevent the loop from kicking in
 
 	circles.forEach(function(c) {
-		c.sound.stop()
+		c.sound.pause()													// Safari throws an error when calling stop() ...
 	})
 }
 
