@@ -84,6 +84,14 @@ app.get('/', function(req, res){
 
 
 if(CONFIG.ENV != 'dev') {
+
+	console.log("Production environment")
+
+	if(CONFIG.SKIP_PANDA){
+		connectIO_defaultSettings();
+		return false
+	}
+
 	var intervalTime = CONFIG.PING_INTERVAL
 	var timeOut = CONFIG.PING_TIMEOUT
 
@@ -100,8 +108,10 @@ if(CONFIG.ENV != 'dev') {
 				clearInterval(ping)
 
 				setTimeout(function(){
+
 					// continou connection
-					connectIO_production();
+					connectIO_defaultSettings();
+
 				}, timeOut)
 
 				return false
@@ -113,16 +123,22 @@ if(CONFIG.ENV != 'dev') {
 	}, intervalTime)
 
 } else {
-
-	// During development just connect to Socket.IO
-	connectIO()
+	
+	console.log("Development environment")
+	
+	connectIO_defaultSettings()
 
 }
 
-function connectIO_production(){
+function connectIO_defaultSettings(){
 
 	// set inital color
 	pyropanda.solid(CONFIG.DEFAULT_LED_COLOR)
+
+
+	// connect Socket.IO events to the server
+
+	connectIO()
 
 
 	/*
@@ -153,10 +169,6 @@ function connectIO_production(){
 		pyropanda.motor1(time)
 		pyropanda.motor2(time)
 	}
-
-	// and last but not least, connect Socket.IO events to the server
-
-	connectIO()
 }
 
 
@@ -239,13 +251,15 @@ function connectIO(){
 		})
 
 		socket.on("ready", function(){
-			console.log('Sketch is loaded and ready!')
+			if(CONFIG.ENV == 'dev'){
+				console.log('Sketch loaded and ready')
+			}
 		})
 	})	
 }
 
 function connect(socket, id){
-	console.log('[user connected]')
+	console.log('User connected')
 
 	var id = id
 	var index = total_singers
@@ -262,7 +276,6 @@ function connect(socket, id){
 		active
 	}
 
-
 	socket.emit("boot", users[id])
 
 	// update server variables
@@ -274,22 +287,21 @@ function disconnect(users, id){
 	// get the disconnected user
 	var user = users[id]
 
-	console.log('[user disconnected]')
+	console.log('User disconnected')
 
 	// update server variables
+
 	voices[user.voice]--
 
-	// if the user was singing (thus active)
-	// decrement the total_singers
+
+	// if the user was singing (thus active), decrement the total_singers
 
 	if(user.active) {
 		total_singers--
+		io.emit("total", total_singers)
+
+		updateUserIndices(user)
 	}
-	
-	io.emit("disconnection", {
-		user,
-		total_singers
-	});
 
 	// remove the user
 	users[id] = null
@@ -299,13 +311,38 @@ function disconnect(users, id){
 }
 
 function leaveTheChoir(user){
-	total_singers--									// update amount of singers
-
 	user.active = false								// make the user not active
+	updateUserIndices(user)							// and update all users and their indices
 
-	io.emit("total", total_singers)					// notify all clients of the new amount of singers	
+	total_singers--
+	io.emit("total", total_singers)
 
 	updatePyroPanda()
+}
+
+function updateUserIndices(left_user){
+	// update all indices of all users
+	// and broadcast them to the clients
+
+	var arr = util.getObjAsArray(users)
+	var left_index = left_user.index
+
+	arr.forEach(function(u) {
+		if(u != null && u.active) {
+			var id = u.id
+			var index = u.index
+
+			if(index > left_index){
+				index -= 1
+
+				// save it
+				users[id].index = index
+
+				// broadcast it
+				io.to(id).emit("index", index)
+			}
+		}
+	})
 }
 
 
@@ -315,9 +352,8 @@ function joinTheChoir(socket, user){
 	user.index = total_singers						// save it to this user (used when disconnecting)
 	user.active = true								// and make it active to pick up it's color for pyropanda
 
-	socket.emit("index", total_singers)				// notify the client of the index
-
 	io.emit("total", total_singers)					// notify all clients of the new amount of singers
+	socket.emit("index", total_singers)				// notify the client of the index
 
 	/*
 	if(total_singers == 1){							// reset ticker if this is the first connection

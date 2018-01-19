@@ -67,7 +67,7 @@ body {
     animation: loading 1s infinite;
     transition: opacity 1s ease; }
   body.is-ready ellipse {
-    animation-play-state: paused;
+    animation: none;
     opacity: 1 !important; }
 
 .proceed {
@@ -211,8 +211,10 @@ a {
     overflow-y: scroll; }
   #about {
     display: block; }
-  body.is-soundbox #soundbox {
-    display: none !important; } }
+  #soundbox {
+    display: none !important; }
+  canvas {
+    display: none; } }
 
 @media screen and (max-height: 500px) {
   #top {

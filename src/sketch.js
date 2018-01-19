@@ -12,7 +12,7 @@ var pause = true
 
 var circles = []
 
-var myFont
+var myFont = 'Helvetica'
 var fontSize = 36
 
 var sketch = function(socket, callback){
@@ -94,6 +94,8 @@ var sketch = function(socket, callback){
 						callback()
 					}
 				})
+			}, function(){
+				console.log('error while loading: ' + src )
 			})
 
 			/*
@@ -123,9 +125,11 @@ var sketch = function(socket, callback){
 		background(0)
 		noCursor()
 
-		circles.forEach(function(c) {
-			c.update(x, y)
-		})
+		if(!pause) {
+			circles.forEach(function(c) {
+				c.update(x, y)
+			})
+		}
 
 		drawCircles(circles)
 
@@ -157,7 +161,6 @@ var sketch = function(socket, callback){
 		}else{
 			muteCircles(true)
 		}
-
 	}
 
 	function arePlayingSolo(circles) {
@@ -368,7 +371,8 @@ var sketch = function(socket, callback){
 					return false
 				}
 
-				console.log('Circle #' + this.id + ' ended')
+				//console.log('Circle #' + this.id + ' ended')
+
 				// play a fragment if is being set by the master node clock
 
 				/*
@@ -392,7 +396,7 @@ var sketch = function(socket, callback){
 				*/
 
 				this.play()
-				console.log('Circle #' + this.id + ' looped')
+				//console.log('Circle #' + this.id + ' looped')
 			})
 			
 
@@ -560,17 +564,28 @@ var sketch = function(socket, callback){
 }
 
 var startAudio = function(){
+	circles.forEach(function(c) {
+		//c.sound.jump()												// jump to the beginning of each soundfile
+		c.sound.play()													// resume playing from where they are
+	})
+
 	pause = false
+}
+
+var pauseAudio = function(){
+	pause = true
 
 	circles.forEach(function(c) {
-		if(c.isLoaded()){
-			c.sound.jump()					// jump to the beginning of each soundfile
-		}
+		c.sound.pause()													// resume playing from where they are
 	})
 }
 
 var stopAudio = function(){
-	pause = true
+	pause = true														// needed to prevent the loop from kicking in
+
+	circles.forEach(function(c) {
+		c.sound.stop()
+	})
 }
 
-export { sketch, startAudio, stopAudio }
+export { sketch, startAudio, stopAudio, pauseAudio }

@@ -108,7 +108,8 @@ body {
 
 	&.is-ready {
 		ellipse {
-			animation-play-state: paused;
+			//animation-play-state: paused;
+			animation: none;
 			opacity: 1 !important;
 		}
 	}
@@ -326,8 +327,12 @@ a {
 		display: block;	
 	}
 
-	body.is-soundbox #soundbox {
-		display: none !important;					// realy don
+	#soundbox {
+		display: none !important;
+	}
+
+	canvas {
+		display: none;
 	}
 }
 

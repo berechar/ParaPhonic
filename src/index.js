@@ -1,14 +1,18 @@
 import './main.scss'
-import { sketch, startAudio, stopAudio } from './sketch'
+import { sketch, startAudio, stopAudio, pauseAudio } from './sketch'
 import io from 'socket.io-client'
 
 var CONFIG = require('./config.js')
+
+var FastClick = require('fastclick');						// remove the 300ms delay between touches
+FastClick.attach(document.body);
 
 var socket = io()
 
 var index = 0,
 	total = 0,
-	voice = 0
+	voice = 0,
+	active = false
 
 
 /**
@@ -16,19 +20,37 @@ var index = 0,
  *
  */
 
-
 sketch(socket, callbackFromSketch)
 
+
+
+socket.on('connect', function(){
+	if(CONFIG.ENV == 'dev'){
+		console.log('(Re)Connected to server')
+	}
+})
+
+socket.on('disconnect', function(){
+	if(CONFIG.ENV == 'dev'){
+		console.log('Disconnected from server (shutdown sounds if any)')
+	}
+
+	stopAudio()
+})
+
 socket.on("boot", function(user) {
-	
-	console.log('boot: ', user)
+	if(CONFIG.ENV == 'dev'){
+		console.log('Boot: ', user)
+	}
 
 	index = user.index
 	total = user.index
 	voice = user.voice
+	active = false
 
 
 	// clear default classes
+	
 	document.body.className = ''
 
 
@@ -55,6 +77,11 @@ socket.on("boot", function(user) {
 
 	document.getElementById('back').addEventListener('click', backEvent)
 
+
+	// add orientation event for pausing/starting audio when already singing
+
+	orientationEvents()
+
 	
 	// update label (default text)
 
@@ -63,9 +90,8 @@ socket.on("boot", function(user) {
 
 	// Update the user interface
 
-	updateUI()
+	updateCounterLabel()
 })
-
 
 /**
  * Update the index
@@ -76,7 +102,7 @@ socket.on("boot", function(user) {
 socket.on("index", function(i) {
 	index = i
 
-	updateUI()
+	updateCounterLabel()
 })
 
 
@@ -89,36 +115,10 @@ socket.on("index", function(i) {
 socket.on("total", function(i) {
 	total = i
 
-	if(index > total){
-		index--
-	}
-
-	updateUI()
+	updateCounterLabel()
 })
 
 
-/**
- * React when a disconnection takes place
- *
- */
-
-
-socket.on("disconnection", function(data) {
-
-	if(index >= data.user.index) {
-		index--
-	}
-
-	total = data.total_singers
-
-	updateUI()
-})
-
-
-function updateUI() {
-	document.getElementById('index').innerHTML = index
-	document.getElementById('total').innerHTML = total
-}
 
 function callbackFromSketch(){
 	// update document style
@@ -145,18 +145,17 @@ function callbackFromSketch(){
 
 var loadEvent = function(e){
 	e.preventDefault()
-	console.log("Click on Loading")
+
+	if(CONFIG.ENV == 'dev'){
+		console.log("Click on Loading")
+	}
 }
 
 var joinEvent = function(e){
 	startSketch(e, function(){
-		console.log("Joined the choir")
-
-
-		// update document style
-
-		document.body.classList.add('is-soundbox')
-
+		if(CONFIG.ENV == 'dev'){
+			console.log("Joined the choir")
+		}
 
 		// notify server
 		
@@ -172,17 +171,14 @@ var joinEvent = function(e){
 		// update the label
 
 		updateButtonLabel('resume')
-
 	})
 }
 
 var resumeEvent = function(e){
 	startSketch(e, function(){
-		console.log("Resumed the choir")
-
-		// update document style
-
-		document.body.classList.add('is-soundbox')
+		if(CONFIG.ENV == 'dev'){
+			console.log("Resumed the choir")
+		}
 
 		// notify server
 
@@ -193,12 +189,18 @@ var resumeEvent = function(e){
 var backEvent = function(e){
 	e.preventDefault()
 
-	console.log("Left the choir")
+	if(CONFIG.ENV == 'dev'){
+		console.log("Left the choir")
+	}
 
 
 	// update document style
 
 	document.body.classList.remove('is-soundbox')
+
+	// set active to false for orientation event
+
+	active = false										
 
 
 	// notify server
@@ -208,7 +210,7 @@ var backEvent = function(e){
 
 	// Stop the audio from playing
 
-	stopAudio()
+	pauseAudio()
 } 
 
 function startSketch(e, fn){
@@ -218,14 +220,69 @@ function startSketch(e, fn){
 		fn()
 	}
 
+	// update document style
+
+	document.body.classList.add('is-soundbox')
+
+	// set active to true for orientation event
+
+	active = true
+
 	// the sketch is by default paused to prevent sound from home
 	// and start the audio files from the beginning
 
 	startAudio()
 
-	updateUI()	
+	// updateCounterLabel()	
+}
+
+function orientationEvents(){
+	var screenOrientation = getOrientation()
+
+	window.onresize = function(event){
+		 var _screenOrientation = getOrientation()
+
+		 if(screenOrientation != _screenOrientation){
+		 	//console.log("Orientation change:" + screenOrientation)
+
+		 	if(screenOrientation == 0){															// landscape
+		 		if(CONFIG.ENV == 'dev'){
+		 			console.log("Orientation: landscape")
+		 		}
+
+		 		if(active){
+		 			if(CONFIG.ENV == 'dev'){
+		 				//console.log("is singing > landscape orientation > pause singing!")
+		 			}
+
+		 			pauseAudio()
+		 		}
+
+		 	}else if(screenOrientation == 90){													// portrait
+		 		if(CONFIG.ENV == 'dev'){
+		 			console.log("Orientation: portrait")
+		 		}
+
+		 		if(active){
+		 			//console.log("is singing > landscape orientation > stop singing > portrait orientation > start singing!")
+		 			startAudio()
+		 		}
+		 	}
+		 }
+
+		 screenOrientation = _screenOrientation
+	}
+
+	function getOrientation(){
+		return window.innerWidth > window.innerHeight? 90 : 0
+	}
 }
 
 function updateButtonLabel(str){
 	document.getElementById('svg_label').innerHTML = str
+}
+
+function updateCounterLabel() {
+	document.getElementById('index').innerHTML = index
+	document.getElementById('total').innerHTML = total
 }
