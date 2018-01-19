@@ -88,7 +88,10 @@ if(CONFIG.ENV != 'dev') {
 	console.log("Production environment")
 
 	if(CONFIG.SKIP_PANDA){
+		console.log("Skipping PyroPanda")
+
 		connectIO_defaultSettings();
+
 		return false
 	}
 
@@ -96,12 +99,12 @@ if(CONFIG.ENV != 'dev') {
 	var timeOut = CONFIG.PING_TIMEOUT
 
 	var ping = clocks.buildInterval(function() {
-		console.log('Ping to pyropanda')
+		console.log('Ping to PyroPanda')
 
 		pyropanda.ping(function(resp) {
 
 			if(resp == '{\'result\':\'ok\'}') {
-				console.log("Succeeded to ping to pyropanda")
+				console.log("Succeeded to ping to PyroPanda")
 				console.log('Start ParaPolyPhonicDiso Socket.IO connections in 5s')
 
 				// destroy this interval
@@ -117,7 +120,7 @@ if(CONFIG.ENV != 'dev') {
 				return false
 			}
 
-			console.log('Failed to ping to pyropanda: trying again in ' + intervalTime + 'ms')
+			console.log('Failed to ping to PyroPanda: trying again in ' + intervalTime + 'ms')
 		})
 
 	}, intervalTime)
@@ -133,6 +136,8 @@ if(CONFIG.ENV != 'dev') {
 function connectIO_defaultSettings(){
 
 	// set inital color
+	console.log("Default LED color: " + CONFIG.DEFAULT_LED_COLOR)
+
 	pyropanda.solid(CONFIG.DEFAULT_LED_COLOR)
 
 
