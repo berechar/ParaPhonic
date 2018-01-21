@@ -1,6 +1,6 @@
-import './main.scss'
-import { sketch, startAudio, stopAudio, pauseAudio } from './sketch'
 import io from 'socket.io-client'
+import './main.scss'
+import { sketch, sketchAudio } from './sketch'
 
 var CONFIG = require('./config.js')
 
@@ -14,7 +14,7 @@ var index = 0,
 	voice = 0,
 	active = false
 
-var button = ''
+var button = document.getElementById('enter')
 
 
 /**
@@ -23,7 +23,6 @@ var button = ''
  */
 
 sketch(socket, callbackFromSketch)
-
 
 
 socket.on('connect', function() {
@@ -40,7 +39,7 @@ socket.on('disconnect', function() {
 		console.log('Disconnected from server (shutdown sounds if any)')
 	}
 
-	stopAudio()
+	sketchAudio.stop()
 })
 
 socket.on("boot", function(user) {
@@ -73,7 +72,7 @@ socket.on("boot", function(user) {
 	// bind default click event to button
 
 	// clear events (re-connections bind the same event twice!)
-	button = document.getElementById('enter')
+	//button = document.getElementById('enter')
 	button.removeEventListener('click', joinEvent)
 	button.removeEventListener('click', resumeEvent)
 	button.addEventListener('click', loadEvent)
@@ -184,6 +183,7 @@ var joinEvent = function(e){
 
 		updateButtonLabel('resume')
 	})
+
 }
 
 var resumeEvent = function(e){
@@ -222,15 +222,11 @@ var backEvent = function(e){
 
 	// Stop the audio from playing
 
-	pauseAudio()
+	sketchAudio.pause()
 } 
 
 function startSketch(e, fn){
 	e.preventDefault()
-
-	if(fn && typeof(fn) === "function") {
-		fn()
-	}
 
 	// update document style
 
@@ -240,10 +236,14 @@ function startSketch(e, fn){
 
 	active = true
 
+	if(fn && typeof(fn) === "function") {
+		fn()
+	}
+
 	// the sketch is by default paused to prevent sound from home
 	// and start the audio files from the beginning
 
-	startAudio()
+	sketchAudio.start()
 
 	// updateCounterLabel()	
 }
@@ -263,7 +263,7 @@ function orientationEvents() {
 		 		}
 
 		 		if(active) {
-		 			pauseAudio()
+		 			sketchAudio.pause()
 		 		}
 
 		 	}else if(screenOrientation == 90) {													// portrait
@@ -272,7 +272,7 @@ function orientationEvents() {
 		 		}
 
 		 		if(active) {
-		 			startAudio()
+		 			sketchAudio.start()
 		 		}
 		 	}
 		 }

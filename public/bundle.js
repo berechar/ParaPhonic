@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 23);
+/******/ 	return __webpack_require__(__webpack_require__.s = 24);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -100,7 +100,7 @@ module.exports = g;
  * Expose `debug()` as the module.
  */
 
-exports = module.exports = __webpack_require__(30);
+exports = module.exports = __webpack_require__(31);
 exports.log = log;
 exports.formatArgs = formatArgs;
 exports.save = save;
@@ -280,7 +280,7 @@ function localstorage() {
   } catch (e) {}
 }
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(29)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(30)))
 
 /***/ }),
 /* 2 */
@@ -459,15 +459,15 @@ Emitter.prototype.hasListeners = function(event){
  * Module dependencies.
  */
 
-var keys = __webpack_require__(37);
-var hasBinary = __webpack_require__(12);
-var sliceBuffer = __webpack_require__(38);
-var after = __webpack_require__(39);
-var utf8 = __webpack_require__(40);
+var keys = __webpack_require__(38);
+var hasBinary = __webpack_require__(13);
+var sliceBuffer = __webpack_require__(39);
+var after = __webpack_require__(40);
+var utf8 = __webpack_require__(41);
 
 var base64encoder;
 if (global && global.ArrayBuffer) {
-  base64encoder = __webpack_require__(42);
+  base64encoder = __webpack_require__(43);
 }
 
 /**
@@ -525,7 +525,7 @@ var err = { type: 'error', data: 'parser error' };
  * Create a blob api even for blob builder when vendor prefixes exist
  */
 
-var Blob = __webpack_require__(43);
+var Blob = __webpack_require__(44);
 
 /**
  * Encodes a packet.
@@ -1121,619 +1121,6 @@ module.exports = function(a, b){
 
 /***/ }),
 /* 6 */
-/***/ (function(module, exports, __webpack_require__) {
-
-
-/**
- * Module dependencies.
- */
-
-var debug = __webpack_require__(1)('socket.io-parser');
-var Emitter = __webpack_require__(2);
-var hasBin = __webpack_require__(12);
-var binary = __webpack_require__(32);
-var isBuf = __webpack_require__(14);
-
-/**
- * Protocol version.
- *
- * @api public
- */
-
-exports.protocol = 4;
-
-/**
- * Packet types.
- *
- * @api public
- */
-
-exports.types = [
-  'CONNECT',
-  'DISCONNECT',
-  'EVENT',
-  'ACK',
-  'ERROR',
-  'BINARY_EVENT',
-  'BINARY_ACK'
-];
-
-/**
- * Packet type `connect`.
- *
- * @api public
- */
-
-exports.CONNECT = 0;
-
-/**
- * Packet type `disconnect`.
- *
- * @api public
- */
-
-exports.DISCONNECT = 1;
-
-/**
- * Packet type `event`.
- *
- * @api public
- */
-
-exports.EVENT = 2;
-
-/**
- * Packet type `ack`.
- *
- * @api public
- */
-
-exports.ACK = 3;
-
-/**
- * Packet type `error`.
- *
- * @api public
- */
-
-exports.ERROR = 4;
-
-/**
- * Packet type 'binary event'
- *
- * @api public
- */
-
-exports.BINARY_EVENT = 5;
-
-/**
- * Packet type `binary ack`. For acks with binary arguments.
- *
- * @api public
- */
-
-exports.BINARY_ACK = 6;
-
-/**
- * Encoder constructor.
- *
- * @api public
- */
-
-exports.Encoder = Encoder;
-
-/**
- * Decoder constructor.
- *
- * @api public
- */
-
-exports.Decoder = Decoder;
-
-/**
- * A socket.io Encoder instance
- *
- * @api public
- */
-
-function Encoder() {}
-
-/**
- * Encode a packet as a single string if non-binary, or as a
- * buffer sequence, depending on packet type.
- *
- * @param {Object} obj - packet object
- * @param {Function} callback - function to handle encodings (likely engine.write)
- * @return Calls callback with Array of encodings
- * @api public
- */
-
-Encoder.prototype.encode = function(obj, callback){
-  if ((obj.type === exports.EVENT || obj.type === exports.ACK) && hasBin(obj.data)) {
-    obj.type = obj.type === exports.EVENT ? exports.BINARY_EVENT : exports.BINARY_ACK;
-  }
-
-  debug('encoding packet %j', obj);
-
-  if (exports.BINARY_EVENT === obj.type || exports.BINARY_ACK === obj.type) {
-    encodeAsBinary(obj, callback);
-  }
-  else {
-    var encoding = encodeAsString(obj);
-    callback([encoding]);
-  }
-};
-
-/**
- * Encode packet as string.
- *
- * @param {Object} packet
- * @return {String} encoded
- * @api private
- */
-
-function encodeAsString(obj) {
-
-  // first is type
-  var str = '' + obj.type;
-
-  // attachments if we have them
-  if (exports.BINARY_EVENT === obj.type || exports.BINARY_ACK === obj.type) {
-    str += obj.attachments + '-';
-  }
-
-  // if we have a namespace other than `/`
-  // we append it followed by a comma `,`
-  if (obj.nsp && '/' !== obj.nsp) {
-    str += obj.nsp + ',';
-  }
-
-  // immediately followed by the id
-  if (null != obj.id) {
-    str += obj.id;
-  }
-
-  // json data
-  if (null != obj.data) {
-    str += JSON.stringify(obj.data);
-  }
-
-  debug('encoded %j as %s', obj, str);
-  return str;
-}
-
-/**
- * Encode packet as 'buffer sequence' by removing blobs, and
- * deconstructing packet into object with placeholders and
- * a list of buffers.
- *
- * @param {Object} packet
- * @return {Buffer} encoded
- * @api private
- */
-
-function encodeAsBinary(obj, callback) {
-
-  function writeEncoding(bloblessData) {
-    var deconstruction = binary.deconstructPacket(bloblessData);
-    var pack = encodeAsString(deconstruction.packet);
-    var buffers = deconstruction.buffers;
-
-    buffers.unshift(pack); // add packet info to beginning of data list
-    callback(buffers); // write all the buffers
-  }
-
-  binary.removeBlobs(obj, writeEncoding);
-}
-
-/**
- * A socket.io Decoder instance
- *
- * @return {Object} decoder
- * @api public
- */
-
-function Decoder() {
-  this.reconstructor = null;
-}
-
-/**
- * Mix in `Emitter` with Decoder.
- */
-
-Emitter(Decoder.prototype);
-
-/**
- * Decodes an ecoded packet string into packet JSON.
- *
- * @param {String} obj - encoded packet
- * @return {Object} packet
- * @api public
- */
-
-Decoder.prototype.add = function(obj) {
-  var packet;
-  if (typeof obj === 'string') {
-    packet = decodeString(obj);
-    if (exports.BINARY_EVENT === packet.type || exports.BINARY_ACK === packet.type) { // binary packet's json
-      this.reconstructor = new BinaryReconstructor(packet);
-
-      // no attachments, labeled binary but no binary data to follow
-      if (this.reconstructor.reconPack.attachments === 0) {
-        this.emit('decoded', packet);
-      }
-    } else { // non-binary full packet
-      this.emit('decoded', packet);
-    }
-  }
-  else if (isBuf(obj) || obj.base64) { // raw binary data
-    if (!this.reconstructor) {
-      throw new Error('got binary data when not reconstructing a packet');
-    } else {
-      packet = this.reconstructor.takeBinaryData(obj);
-      if (packet) { // received final buffer
-        this.reconstructor = null;
-        this.emit('decoded', packet);
-      }
-    }
-  }
-  else {
-    throw new Error('Unknown type: ' + obj);
-  }
-};
-
-/**
- * Decode a packet String (JSON data)
- *
- * @param {String} str
- * @return {Object} packet
- * @api private
- */
-
-function decodeString(str) {
-  var i = 0;
-  // look up type
-  var p = {
-    type: Number(str.charAt(0))
-  };
-
-  if (null == exports.types[p.type]) return error();
-
-  // look up attachments if type binary
-  if (exports.BINARY_EVENT === p.type || exports.BINARY_ACK === p.type) {
-    var buf = '';
-    while (str.charAt(++i) !== '-') {
-      buf += str.charAt(i);
-      if (i == str.length) break;
-    }
-    if (buf != Number(buf) || str.charAt(i) !== '-') {
-      throw new Error('Illegal attachments');
-    }
-    p.attachments = Number(buf);
-  }
-
-  // look up namespace (if any)
-  if ('/' === str.charAt(i + 1)) {
-    p.nsp = '';
-    while (++i) {
-      var c = str.charAt(i);
-      if (',' === c) break;
-      p.nsp += c;
-      if (i === str.length) break;
-    }
-  } else {
-    p.nsp = '/';
-  }
-
-  // look up id
-  var next = str.charAt(i + 1);
-  if ('' !== next && Number(next) == next) {
-    p.id = '';
-    while (++i) {
-      var c = str.charAt(i);
-      if (null == c || Number(c) != c) {
-        --i;
-        break;
-      }
-      p.id += str.charAt(i);
-      if (i === str.length) break;
-    }
-    p.id = Number(p.id);
-  }
-
-  // look up json data
-  if (str.charAt(++i)) {
-    p = tryParse(p, str.substr(i));
-  }
-
-  debug('decoded %s as %j', str, p);
-  return p;
-}
-
-function tryParse(p, str) {
-  try {
-    p.data = JSON.parse(str);
-  } catch(e){
-    return error();
-  }
-  return p; 
-}
-
-/**
- * Deallocates a parser's resources
- *
- * @api public
- */
-
-Decoder.prototype.destroy = function() {
-  if (this.reconstructor) {
-    this.reconstructor.finishedReconstruction();
-  }
-};
-
-/**
- * A manager of a binary event's 'buffer sequence'. Should
- * be constructed whenever a packet of type BINARY_EVENT is
- * decoded.
- *
- * @param {Object} packet
- * @return {BinaryReconstructor} initialized reconstructor
- * @api private
- */
-
-function BinaryReconstructor(packet) {
-  this.reconPack = packet;
-  this.buffers = [];
-}
-
-/**
- * Method to be called when binary data received from connection
- * after a BINARY_EVENT packet.
- *
- * @param {Buffer | ArrayBuffer} binData - the raw binary data received
- * @return {null | Object} returns null if more binary data is expected or
- *   a reconstructed packet object if all buffers have been received.
- * @api private
- */
-
-BinaryReconstructor.prototype.takeBinaryData = function(binData) {
-  this.buffers.push(binData);
-  if (this.buffers.length === this.reconPack.attachments) { // done with buffer list
-    var packet = binary.reconstructPacket(this.reconPack, this.buffers);
-    this.finishedReconstruction();
-    return packet;
-  }
-  return null;
-};
-
-/**
- * Cleans up binary packet reconstruction variables.
- *
- * @api private
- */
-
-BinaryReconstructor.prototype.finishedReconstruction = function() {
-  this.reconPack = null;
-  this.buffers = [];
-};
-
-function error() {
-  return {
-    type: exports.ERROR,
-    data: 'parser error'
-  };
-}
-
-
-/***/ }),
-/* 7 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {// browser shim for xmlhttprequest module
-
-var hasCORS = __webpack_require__(35);
-
-module.exports = function (opts) {
-  var xdomain = opts.xdomain;
-
-  // scheme must be same when usign XDomainRequest
-  // http://blogs.msdn.com/b/ieinternals/archive/2010/05/13/xdomainrequest-restrictions-limitations-and-workarounds.aspx
-  var xscheme = opts.xscheme;
-
-  // XDomainRequest has a flow of not sending cookie, therefore it should be disabled as a default.
-  // https://github.com/Automattic/engine.io-client/pull/217
-  var enablesXDR = opts.enablesXDR;
-
-  // XMLHttpRequest can be disabled on IE
-  try {
-    if ('undefined' !== typeof XMLHttpRequest && (!xdomain || hasCORS)) {
-      return new XMLHttpRequest();
-    }
-  } catch (e) { }
-
-  // Use XDomainRequest for IE8 if enablesXDR is true
-  // because loading bar keeps flashing when using jsonp-polling
-  // https://github.com/yujiosaka/socke.io-ie8-loading-example
-  try {
-    if ('undefined' !== typeof XDomainRequest && !xscheme && enablesXDR) {
-      return new XDomainRequest();
-    }
-  } catch (e) { }
-
-  if (!xdomain) {
-    try {
-      return new global[['Active'].concat('Object').join('X')]('Microsoft.XMLHTTP');
-    } catch (e) { }
-  }
-};
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 8 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
- * Module dependencies.
- */
-
-var parser = __webpack_require__(3);
-var Emitter = __webpack_require__(2);
-
-/**
- * Module exports.
- */
-
-module.exports = Transport;
-
-/**
- * Transport abstract constructor.
- *
- * @param {Object} options.
- * @api private
- */
-
-function Transport (opts) {
-  this.path = opts.path;
-  this.hostname = opts.hostname;
-  this.port = opts.port;
-  this.secure = opts.secure;
-  this.query = opts.query;
-  this.timestampParam = opts.timestampParam;
-  this.timestampRequests = opts.timestampRequests;
-  this.readyState = '';
-  this.agent = opts.agent || false;
-  this.socket = opts.socket;
-  this.enablesXDR = opts.enablesXDR;
-
-  // SSL options for Node.js client
-  this.pfx = opts.pfx;
-  this.key = opts.key;
-  this.passphrase = opts.passphrase;
-  this.cert = opts.cert;
-  this.ca = opts.ca;
-  this.ciphers = opts.ciphers;
-  this.rejectUnauthorized = opts.rejectUnauthorized;
-  this.forceNode = opts.forceNode;
-
-  // other options for Node.js client
-  this.extraHeaders = opts.extraHeaders;
-  this.localAddress = opts.localAddress;
-}
-
-/**
- * Mix in `Emitter`.
- */
-
-Emitter(Transport.prototype);
-
-/**
- * Emits an error.
- *
- * @param {String} str
- * @return {Transport} for chaining
- * @api public
- */
-
-Transport.prototype.onError = function (msg, desc) {
-  var err = new Error(msg);
-  err.type = 'TransportError';
-  err.description = desc;
-  this.emit('error', err);
-  return this;
-};
-
-/**
- * Opens the transport.
- *
- * @api public
- */
-
-Transport.prototype.open = function () {
-  if ('closed' === this.readyState || '' === this.readyState) {
-    this.readyState = 'opening';
-    this.doOpen();
-  }
-
-  return this;
-};
-
-/**
- * Closes the transport.
- *
- * @api private
- */
-
-Transport.prototype.close = function () {
-  if ('opening' === this.readyState || 'open' === this.readyState) {
-    this.doClose();
-    this.onClose();
-  }
-
-  return this;
-};
-
-/**
- * Sends multiple packets.
- *
- * @param {Array} packets
- * @api private
- */
-
-Transport.prototype.send = function (packets) {
-  if ('open' === this.readyState) {
-    this.write(packets);
-  } else {
-    throw new Error('Transport not open');
-  }
-};
-
-/**
- * Called upon open
- *
- * @api private
- */
-
-Transport.prototype.onOpen = function () {
-  this.readyState = 'open';
-  this.writable = true;
-  this.emit('open');
-};
-
-/**
- * Called with data.
- *
- * @param {String} data
- * @api private
- */
-
-Transport.prototype.onData = function (data) {
-  var packet = parser.decodePacket(data, this.socket.binaryType);
-  this.onPacket(packet);
-};
-
-/**
- * Called with a decoded packet.
- */
-
-Transport.prototype.onPacket = function (packet) {
-  this.emit('packet', packet);
-};
-
-/**
- * Called upon close.
- *
- * @api private
- */
-
-Transport.prototype.onClose = function () {
-  this.readyState = 'closed';
-  this.emit('close');
-};
-
-
-/***/ }),
-/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {var require;var require;/*! p5.js v0.5.16 October 11, 2017 */
@@ -73145,189 +72532,7 @@ module.exports = p5;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 10 */
-/***/ (function(module, exports) {
-
-module.exports = {
-	ENV: 						'production',					// 'dev' or 'production'
-	WEMOS_ADDRESS: 				'http://192.168.42.101',		// WeMos ip address for sending GET requests to control electronics
-	DEBUG: 						true,
-	SKIP_PANDA: 				true,							// while doing production but not wanting to deal with pyropanda
-	INFINITE_MOTORS: 			true,							// if [true], boot system with infinite rotating motors
-
-	PING_INTERVAL: 				5000,							// time (ms) for doing an interval request to Pyropanda
-	PING_TIMEOUT: 				5000,							// time (ms) for timeout before sending the default settings to PyroPanda after a successfull ping
-
-	COLOR_WHEEL: 				true,    						// if [true], roll through all singing voices after someone joins the choir
-	COLOR_WHEEL_INTERVAL: 		16000,							// time (ms) for color wheel interval
-	COLOR_WHEEL_NEW_TIMEOUT: 	1000,							// time (ms) for timeout before starting the interval
-
-	DEFAULT_LED_COLOR: 			'111111',						// default LED color
-
-	LED_COLORS: [
-								'0D1D16',						// blue
-								'11250D',						// green
-								'312906',						// yellow
-								'200704'						// red
-	],
-
-	COLORS: [
-								[39, 129, 168],					// blue
-								[58, 117, 91], 					// green
-								[237, 217, 130],				// yellow
-								[168, 39, 39]					// red
-	],
-
-	MAX_VOICES: 				4
-}
-
-/***/ }),
-/* 11 */
-/***/ (function(module, exports) {
-
-/**
- * Parses an URI
- *
- * @author Steven Levithan <stevenlevithan.com> (MIT license)
- * @api private
- */
-
-var re = /^(?:(?![^:@]+:[^:@\/]*@)(http|https|ws|wss):\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?((?:[a-f0-9]{0,4}:){2,7}[a-f0-9]{0,4}|[^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
-
-var parts = [
-    'source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'
-];
-
-module.exports = function parseuri(str) {
-    var src = str,
-        b = str.indexOf('['),
-        e = str.indexOf(']');
-
-    if (b != -1 && e != -1) {
-        str = str.substring(0, b) + str.substring(b, e).replace(/:/g, ';') + str.substring(e, str.length);
-    }
-
-    var m = re.exec(str || ''),
-        uri = {},
-        i = 14;
-
-    while (i--) {
-        uri[parts[i]] = m[i] || '';
-    }
-
-    if (b != -1 && e != -1) {
-        uri.source = src;
-        uri.host = uri.host.substring(1, uri.host.length - 1).replace(/;/g, ':');
-        uri.authority = uri.authority.replace('[', '').replace(']', '').replace(/;/g, ':');
-        uri.ipv6uri = true;
-    }
-
-    return uri;
-};
-
-
-/***/ }),
-/* 12 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {/* global Blob File */
-
-/*
- * Module requirements.
- */
-
-var isArray = __webpack_require__(13);
-
-var toString = Object.prototype.toString;
-var withNativeBlob = typeof global.Blob === 'function' || toString.call(global.Blob) === '[object BlobConstructor]';
-var withNativeFile = typeof global.File === 'function' || toString.call(global.File) === '[object FileConstructor]';
-
-/**
- * Module exports.
- */
-
-module.exports = hasBinary;
-
-/**
- * Checks for binary data.
- *
- * Supports Buffer, ArrayBuffer, Blob and File.
- *
- * @param {Object} anything
- * @api public
- */
-
-function hasBinary (obj) {
-  if (!obj || typeof obj !== 'object') {
-    return false;
-  }
-
-  if (isArray(obj)) {
-    for (var i = 0, l = obj.length; i < l; i++) {
-      if (hasBinary(obj[i])) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  if ((typeof global.Buffer === 'function' && global.Buffer.isBuffer && global.Buffer.isBuffer(obj)) ||
-     (typeof global.ArrayBuffer === 'function' && obj instanceof ArrayBuffer) ||
-     (withNativeBlob && obj instanceof Blob) ||
-     (withNativeFile && obj instanceof File)
-    ) {
-    return true;
-  }
-
-  // see: https://github.com/Automattic/has-binary/pull/4
-  if (obj.toJSON && typeof obj.toJSON === 'function' && arguments.length === 1) {
-    return hasBinary(obj.toJSON(), true);
-  }
-
-  for (var key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key) && hasBinary(obj[key])) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 13 */
-/***/ (function(module, exports) {
-
-var toString = {}.toString;
-
-module.exports = Array.isArray || function (arr) {
-  return toString.call(arr) == '[object Array]';
-};
-
-
-/***/ }),
-/* 14 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {
-module.exports = isBuf;
-
-/**
- * Returns true if obj is a buffer or an arraybuffer.
- *
- * @api private
- */
-
-function isBuf(obj) {
-  return (global.Buffer && global.Buffer.isBuffer(obj)) ||
-         (global.ArrayBuffer && obj instanceof ArrayBuffer);
-}
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 15 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
@@ -73335,2435 +72540,612 @@ function isBuf(obj) {
  * Module dependencies.
  */
 
-var eio = __webpack_require__(33);
-var Socket = __webpack_require__(20);
+var debug = __webpack_require__(1)('socket.io-parser');
 var Emitter = __webpack_require__(2);
-var parser = __webpack_require__(6);
-var on = __webpack_require__(21);
-var bind = __webpack_require__(22);
-var debug = __webpack_require__(1)('socket.io-client:manager');
-var indexOf = __webpack_require__(19);
-var Backoff = __webpack_require__(48);
+var hasBin = __webpack_require__(13);
+var binary = __webpack_require__(33);
+var isBuf = __webpack_require__(15);
 
 /**
- * IE6+ hasOwnProperty
- */
-
-var has = Object.prototype.hasOwnProperty;
-
-/**
- * Module exports
- */
-
-module.exports = Manager;
-
-/**
- * `Manager` constructor.
+ * Protocol version.
  *
- * @param {String} engine instance or engine uri/opts
- * @param {Object} options
  * @api public
  */
 
-function Manager (uri, opts) {
-  if (!(this instanceof Manager)) return new Manager(uri, opts);
-  if (uri && ('object' === typeof uri)) {
-    opts = uri;
-    uri = undefined;
-  }
-  opts = opts || {};
+exports.protocol = 4;
 
-  opts.path = opts.path || '/socket.io';
-  this.nsps = {};
-  this.subs = [];
-  this.opts = opts;
-  this.reconnection(opts.reconnection !== false);
-  this.reconnectionAttempts(opts.reconnectionAttempts || Infinity);
-  this.reconnectionDelay(opts.reconnectionDelay || 1000);
-  this.reconnectionDelayMax(opts.reconnectionDelayMax || 5000);
-  this.randomizationFactor(opts.randomizationFactor || 0.5);
-  this.backoff = new Backoff({
-    min: this.reconnectionDelay(),
-    max: this.reconnectionDelayMax(),
-    jitter: this.randomizationFactor()
-  });
-  this.timeout(null == opts.timeout ? 20000 : opts.timeout);
-  this.readyState = 'closed';
-  this.uri = uri;
-  this.connecting = [];
-  this.lastPing = null;
-  this.encoding = false;
-  this.packetBuffer = [];
-  var _parser = opts.parser || parser;
-  this.encoder = new _parser.Encoder();
-  this.decoder = new _parser.Decoder();
-  this.autoConnect = opts.autoConnect !== false;
-  if (this.autoConnect) this.open();
+/**
+ * Packet types.
+ *
+ * @api public
+ */
+
+exports.types = [
+  'CONNECT',
+  'DISCONNECT',
+  'EVENT',
+  'ACK',
+  'ERROR',
+  'BINARY_EVENT',
+  'BINARY_ACK'
+];
+
+/**
+ * Packet type `connect`.
+ *
+ * @api public
+ */
+
+exports.CONNECT = 0;
+
+/**
+ * Packet type `disconnect`.
+ *
+ * @api public
+ */
+
+exports.DISCONNECT = 1;
+
+/**
+ * Packet type `event`.
+ *
+ * @api public
+ */
+
+exports.EVENT = 2;
+
+/**
+ * Packet type `ack`.
+ *
+ * @api public
+ */
+
+exports.ACK = 3;
+
+/**
+ * Packet type `error`.
+ *
+ * @api public
+ */
+
+exports.ERROR = 4;
+
+/**
+ * Packet type 'binary event'
+ *
+ * @api public
+ */
+
+exports.BINARY_EVENT = 5;
+
+/**
+ * Packet type `binary ack`. For acks with binary arguments.
+ *
+ * @api public
+ */
+
+exports.BINARY_ACK = 6;
+
+/**
+ * Encoder constructor.
+ *
+ * @api public
+ */
+
+exports.Encoder = Encoder;
+
+/**
+ * Decoder constructor.
+ *
+ * @api public
+ */
+
+exports.Decoder = Decoder;
+
+/**
+ * A socket.io Encoder instance
+ *
+ * @api public
+ */
+
+function Encoder() {}
+
+/**
+ * Encode a packet as a single string if non-binary, or as a
+ * buffer sequence, depending on packet type.
+ *
+ * @param {Object} obj - packet object
+ * @param {Function} callback - function to handle encodings (likely engine.write)
+ * @return Calls callback with Array of encodings
+ * @api public
+ */
+
+Encoder.prototype.encode = function(obj, callback){
+  if ((obj.type === exports.EVENT || obj.type === exports.ACK) && hasBin(obj.data)) {
+    obj.type = obj.type === exports.EVENT ? exports.BINARY_EVENT : exports.BINARY_ACK;
+  }
+
+  debug('encoding packet %j', obj);
+
+  if (exports.BINARY_EVENT === obj.type || exports.BINARY_ACK === obj.type) {
+    encodeAsBinary(obj, callback);
+  }
+  else {
+    var encoding = encodeAsString(obj);
+    callback([encoding]);
+  }
+};
+
+/**
+ * Encode packet as string.
+ *
+ * @param {Object} packet
+ * @return {String} encoded
+ * @api private
+ */
+
+function encodeAsString(obj) {
+
+  // first is type
+  var str = '' + obj.type;
+
+  // attachments if we have them
+  if (exports.BINARY_EVENT === obj.type || exports.BINARY_ACK === obj.type) {
+    str += obj.attachments + '-';
+  }
+
+  // if we have a namespace other than `/`
+  // we append it followed by a comma `,`
+  if (obj.nsp && '/' !== obj.nsp) {
+    str += obj.nsp + ',';
+  }
+
+  // immediately followed by the id
+  if (null != obj.id) {
+    str += obj.id;
+  }
+
+  // json data
+  if (null != obj.data) {
+    str += JSON.stringify(obj.data);
+  }
+
+  debug('encoded %j as %s', obj, str);
+  return str;
 }
 
 /**
- * Propagate given event to sockets and emit on `this`
+ * Encode packet as 'buffer sequence' by removing blobs, and
+ * deconstructing packet into object with placeholders and
+ * a list of buffers.
  *
+ * @param {Object} packet
+ * @return {Buffer} encoded
  * @api private
  */
 
-Manager.prototype.emitAll = function () {
-  this.emit.apply(this, arguments);
-  for (var nsp in this.nsps) {
-    if (has.call(this.nsps, nsp)) {
-      this.nsps[nsp].emit.apply(this.nsps[nsp], arguments);
+function encodeAsBinary(obj, callback) {
+
+  function writeEncoding(bloblessData) {
+    var deconstruction = binary.deconstructPacket(bloblessData);
+    var pack = encodeAsString(deconstruction.packet);
+    var buffers = deconstruction.buffers;
+
+    buffers.unshift(pack); // add packet info to beginning of data list
+    callback(buffers); // write all the buffers
+  }
+
+  binary.removeBlobs(obj, writeEncoding);
+}
+
+/**
+ * A socket.io Decoder instance
+ *
+ * @return {Object} decoder
+ * @api public
+ */
+
+function Decoder() {
+  this.reconstructor = null;
+}
+
+/**
+ * Mix in `Emitter` with Decoder.
+ */
+
+Emitter(Decoder.prototype);
+
+/**
+ * Decodes an ecoded packet string into packet JSON.
+ *
+ * @param {String} obj - encoded packet
+ * @return {Object} packet
+ * @api public
+ */
+
+Decoder.prototype.add = function(obj) {
+  var packet;
+  if (typeof obj === 'string') {
+    packet = decodeString(obj);
+    if (exports.BINARY_EVENT === packet.type || exports.BINARY_ACK === packet.type) { // binary packet's json
+      this.reconstructor = new BinaryReconstructor(packet);
+
+      // no attachments, labeled binary but no binary data to follow
+      if (this.reconstructor.reconPack.attachments === 0) {
+        this.emit('decoded', packet);
+      }
+    } else { // non-binary full packet
+      this.emit('decoded', packet);
     }
+  }
+  else if (isBuf(obj) || obj.base64) { // raw binary data
+    if (!this.reconstructor) {
+      throw new Error('got binary data when not reconstructing a packet');
+    } else {
+      packet = this.reconstructor.takeBinaryData(obj);
+      if (packet) { // received final buffer
+        this.reconstructor = null;
+        this.emit('decoded', packet);
+      }
+    }
+  }
+  else {
+    throw new Error('Unknown type: ' + obj);
   }
 };
 
 /**
- * Update `socket.id` of all sockets
+ * Decode a packet String (JSON data)
  *
+ * @param {String} str
+ * @return {Object} packet
  * @api private
  */
 
-Manager.prototype.updateSocketIds = function () {
-  for (var nsp in this.nsps) {
-    if (has.call(this.nsps, nsp)) {
-      this.nsps[nsp].id = this.generateId(nsp);
+function decodeString(str) {
+  var i = 0;
+  // look up type
+  var p = {
+    type: Number(str.charAt(0))
+  };
+
+  if (null == exports.types[p.type]) return error();
+
+  // look up attachments if type binary
+  if (exports.BINARY_EVENT === p.type || exports.BINARY_ACK === p.type) {
+    var buf = '';
+    while (str.charAt(++i) !== '-') {
+      buf += str.charAt(i);
+      if (i == str.length) break;
     }
+    if (buf != Number(buf) || str.charAt(i) !== '-') {
+      throw new Error('Illegal attachments');
+    }
+    p.attachments = Number(buf);
+  }
+
+  // look up namespace (if any)
+  if ('/' === str.charAt(i + 1)) {
+    p.nsp = '';
+    while (++i) {
+      var c = str.charAt(i);
+      if (',' === c) break;
+      p.nsp += c;
+      if (i === str.length) break;
+    }
+  } else {
+    p.nsp = '/';
+  }
+
+  // look up id
+  var next = str.charAt(i + 1);
+  if ('' !== next && Number(next) == next) {
+    p.id = '';
+    while (++i) {
+      var c = str.charAt(i);
+      if (null == c || Number(c) != c) {
+        --i;
+        break;
+      }
+      p.id += str.charAt(i);
+      if (i === str.length) break;
+    }
+    p.id = Number(p.id);
+  }
+
+  // look up json data
+  if (str.charAt(++i)) {
+    p = tryParse(p, str.substr(i));
+  }
+
+  debug('decoded %s as %j', str, p);
+  return p;
+}
+
+function tryParse(p, str) {
+  try {
+    p.data = JSON.parse(str);
+  } catch(e){
+    return error();
+  }
+  return p; 
+}
+
+/**
+ * Deallocates a parser's resources
+ *
+ * @api public
+ */
+
+Decoder.prototype.destroy = function() {
+  if (this.reconstructor) {
+    this.reconstructor.finishedReconstruction();
   }
 };
 
 /**
- * generate `socket.id` for the given `nsp`
+ * A manager of a binary event's 'buffer sequence'. Should
+ * be constructed whenever a packet of type BINARY_EVENT is
+ * decoded.
  *
- * @param {String} nsp
- * @return {String}
+ * @param {Object} packet
+ * @return {BinaryReconstructor} initialized reconstructor
  * @api private
  */
 
-Manager.prototype.generateId = function (nsp) {
-  return (nsp === '/' ? '' : (nsp + '#')) + this.engine.id;
+function BinaryReconstructor(packet) {
+  this.reconPack = packet;
+  this.buffers = [];
+}
+
+/**
+ * Method to be called when binary data received from connection
+ * after a BINARY_EVENT packet.
+ *
+ * @param {Buffer | ArrayBuffer} binData - the raw binary data received
+ * @return {null | Object} returns null if more binary data is expected or
+ *   a reconstructed packet object if all buffers have been received.
+ * @api private
+ */
+
+BinaryReconstructor.prototype.takeBinaryData = function(binData) {
+  this.buffers.push(binData);
+  if (this.buffers.length === this.reconPack.attachments) { // done with buffer list
+    var packet = binary.reconstructPacket(this.reconPack, this.buffers);
+    this.finishedReconstruction();
+    return packet;
+  }
+  return null;
 };
+
+/**
+ * Cleans up binary packet reconstruction variables.
+ *
+ * @api private
+ */
+
+BinaryReconstructor.prototype.finishedReconstruction = function() {
+  this.reconPack = null;
+  this.buffers = [];
+};
+
+function error() {
+  return {
+    type: exports.ERROR,
+    data: 'parser error'
+  };
+}
+
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(global) {// browser shim for xmlhttprequest module
+
+var hasCORS = __webpack_require__(36);
+
+module.exports = function (opts) {
+  var xdomain = opts.xdomain;
+
+  // scheme must be same when usign XDomainRequest
+  // http://blogs.msdn.com/b/ieinternals/archive/2010/05/13/xdomainrequest-restrictions-limitations-and-workarounds.aspx
+  var xscheme = opts.xscheme;
+
+  // XDomainRequest has a flow of not sending cookie, therefore it should be disabled as a default.
+  // https://github.com/Automattic/engine.io-client/pull/217
+  var enablesXDR = opts.enablesXDR;
+
+  // XMLHttpRequest can be disabled on IE
+  try {
+    if ('undefined' !== typeof XMLHttpRequest && (!xdomain || hasCORS)) {
+      return new XMLHttpRequest();
+    }
+  } catch (e) { }
+
+  // Use XDomainRequest for IE8 if enablesXDR is true
+  // because loading bar keeps flashing when using jsonp-polling
+  // https://github.com/yujiosaka/socke.io-ie8-loading-example
+  try {
+    if ('undefined' !== typeof XDomainRequest && !xscheme && enablesXDR) {
+      return new XDomainRequest();
+    }
+  } catch (e) { }
+
+  if (!xdomain) {
+    try {
+      return new global[['Active'].concat('Object').join('X')]('Microsoft.XMLHTTP');
+    } catch (e) { }
+  }
+};
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 9 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/**
+ * Module dependencies.
+ */
+
+var parser = __webpack_require__(3);
+var Emitter = __webpack_require__(2);
+
+/**
+ * Module exports.
+ */
+
+module.exports = Transport;
+
+/**
+ * Transport abstract constructor.
+ *
+ * @param {Object} options.
+ * @api private
+ */
+
+function Transport (opts) {
+  this.path = opts.path;
+  this.hostname = opts.hostname;
+  this.port = opts.port;
+  this.secure = opts.secure;
+  this.query = opts.query;
+  this.timestampParam = opts.timestampParam;
+  this.timestampRequests = opts.timestampRequests;
+  this.readyState = '';
+  this.agent = opts.agent || false;
+  this.socket = opts.socket;
+  this.enablesXDR = opts.enablesXDR;
+
+  // SSL options for Node.js client
+  this.pfx = opts.pfx;
+  this.key = opts.key;
+  this.passphrase = opts.passphrase;
+  this.cert = opts.cert;
+  this.ca = opts.ca;
+  this.ciphers = opts.ciphers;
+  this.rejectUnauthorized = opts.rejectUnauthorized;
+  this.forceNode = opts.forceNode;
+
+  // other options for Node.js client
+  this.extraHeaders = opts.extraHeaders;
+  this.localAddress = opts.localAddress;
+}
 
 /**
  * Mix in `Emitter`.
  */
 
-Emitter(Manager.prototype);
+Emitter(Transport.prototype);
 
 /**
- * Sets the `reconnection` config.
+ * Emits an error.
  *
- * @param {Boolean} true/false if it should automatically reconnect
- * @return {Manager} self or value
+ * @param {String} str
+ * @return {Transport} for chaining
  * @api public
  */
 
-Manager.prototype.reconnection = function (v) {
-  if (!arguments.length) return this._reconnection;
-  this._reconnection = !!v;
+Transport.prototype.onError = function (msg, desc) {
+  var err = new Error(msg);
+  err.type = 'TransportError';
+  err.description = desc;
+  this.emit('error', err);
   return this;
 };
 
 /**
- * Sets the reconnection attempts config.
+ * Opens the transport.
  *
- * @param {Number} max reconnection attempts before giving up
- * @return {Manager} self or value
  * @api public
  */
 
-Manager.prototype.reconnectionAttempts = function (v) {
-  if (!arguments.length) return this._reconnectionAttempts;
-  this._reconnectionAttempts = v;
+Transport.prototype.open = function () {
+  if ('closed' === this.readyState || '' === this.readyState) {
+    this.readyState = 'opening';
+    this.doOpen();
+  }
+
   return this;
 };
 
 /**
- * Sets the delay between reconnections.
- *
- * @param {Number} delay
- * @return {Manager} self or value
- * @api public
- */
-
-Manager.prototype.reconnectionDelay = function (v) {
-  if (!arguments.length) return this._reconnectionDelay;
-  this._reconnectionDelay = v;
-  this.backoff && this.backoff.setMin(v);
-  return this;
-};
-
-Manager.prototype.randomizationFactor = function (v) {
-  if (!arguments.length) return this._randomizationFactor;
-  this._randomizationFactor = v;
-  this.backoff && this.backoff.setJitter(v);
-  return this;
-};
-
-/**
- * Sets the maximum delay between reconnections.
- *
- * @param {Number} delay
- * @return {Manager} self or value
- * @api public
- */
-
-Manager.prototype.reconnectionDelayMax = function (v) {
-  if (!arguments.length) return this._reconnectionDelayMax;
-  this._reconnectionDelayMax = v;
-  this.backoff && this.backoff.setMax(v);
-  return this;
-};
-
-/**
- * Sets the connection timeout. `false` to disable
- *
- * @return {Manager} self or value
- * @api public
- */
-
-Manager.prototype.timeout = function (v) {
-  if (!arguments.length) return this._timeout;
-  this._timeout = v;
-  return this;
-};
-
-/**
- * Starts trying to reconnect if reconnection is enabled and we have not
- * started reconnecting yet
+ * Closes the transport.
  *
  * @api private
  */
 
-Manager.prototype.maybeReconnectOnOpen = function () {
-  // Only try to reconnect if it's the first time we're connecting
-  if (!this.reconnecting && this._reconnection && this.backoff.attempts === 0) {
-    // keeps reconnection from firing twice for the same reconnection loop
-    this.reconnect();
+Transport.prototype.close = function () {
+  if ('opening' === this.readyState || 'open' === this.readyState) {
+    this.doClose();
+    this.onClose();
   }
-};
-
-/**
- * Sets the current transport `socket`.
- *
- * @param {Function} optional, callback
- * @return {Manager} self
- * @api public
- */
-
-Manager.prototype.open =
-Manager.prototype.connect = function (fn, opts) {
-  debug('readyState %s', this.readyState);
-  if (~this.readyState.indexOf('open')) return this;
-
-  debug('opening %s', this.uri);
-  this.engine = eio(this.uri, this.opts);
-  var socket = this.engine;
-  var self = this;
-  this.readyState = 'opening';
-  this.skipReconnect = false;
-
-  // emit `open`
-  var openSub = on(socket, 'open', function () {
-    self.onopen();
-    fn && fn();
-  });
-
-  // emit `connect_error`
-  var errorSub = on(socket, 'error', function (data) {
-    debug('connect_error');
-    self.cleanup();
-    self.readyState = 'closed';
-    self.emitAll('connect_error', data);
-    if (fn) {
-      var err = new Error('Connection error');
-      err.data = data;
-      fn(err);
-    } else {
-      // Only do this if there is no fn to handle the error
-      self.maybeReconnectOnOpen();
-    }
-  });
-
-  // emit `connect_timeout`
-  if (false !== this._timeout) {
-    var timeout = this._timeout;
-    debug('connect attempt will timeout after %d', timeout);
-
-    // set timer
-    var timer = setTimeout(function () {
-      debug('connect attempt timed out after %d', timeout);
-      openSub.destroy();
-      socket.close();
-      socket.emit('error', 'timeout');
-      self.emitAll('connect_timeout', timeout);
-    }, timeout);
-
-    this.subs.push({
-      destroy: function () {
-        clearTimeout(timer);
-      }
-    });
-  }
-
-  this.subs.push(openSub);
-  this.subs.push(errorSub);
 
   return this;
 };
 
 /**
- * Called upon transport open.
+ * Sends multiple packets.
+ *
+ * @param {Array} packets
+ * @api private
+ */
+
+Transport.prototype.send = function (packets) {
+  if ('open' === this.readyState) {
+    this.write(packets);
+  } else {
+    throw new Error('Transport not open');
+  }
+};
+
+/**
+ * Called upon open
  *
  * @api private
  */
 
-Manager.prototype.onopen = function () {
-  debug('open');
-
-  // clear old subs
-  this.cleanup();
-
-  // mark as open
+Transport.prototype.onOpen = function () {
   this.readyState = 'open';
+  this.writable = true;
   this.emit('open');
-
-  // add new subs
-  var socket = this.engine;
-  this.subs.push(on(socket, 'data', bind(this, 'ondata')));
-  this.subs.push(on(socket, 'ping', bind(this, 'onping')));
-  this.subs.push(on(socket, 'pong', bind(this, 'onpong')));
-  this.subs.push(on(socket, 'error', bind(this, 'onerror')));
-  this.subs.push(on(socket, 'close', bind(this, 'onclose')));
-  this.subs.push(on(this.decoder, 'decoded', bind(this, 'ondecoded')));
-};
-
-/**
- * Called upon a ping.
- *
- * @api private
- */
-
-Manager.prototype.onping = function () {
-  this.lastPing = new Date();
-  this.emitAll('ping');
-};
-
-/**
- * Called upon a packet.
- *
- * @api private
- */
-
-Manager.prototype.onpong = function () {
-  this.emitAll('pong', new Date() - this.lastPing);
 };
 
 /**
  * Called with data.
  *
+ * @param {String} data
  * @api private
  */
 
-Manager.prototype.ondata = function (data) {
-  this.decoder.add(data);
+Transport.prototype.onData = function (data) {
+  var packet = parser.decodePacket(data, this.socket.binaryType);
+  this.onPacket(packet);
 };
 
 /**
- * Called when parser fully decodes a packet.
- *
- * @api private
+ * Called with a decoded packet.
  */
 
-Manager.prototype.ondecoded = function (packet) {
+Transport.prototype.onPacket = function (packet) {
   this.emit('packet', packet);
 };
 
 /**
- * Called upon socket error.
+ * Called upon close.
  *
  * @api private
  */
 
-Manager.prototype.onerror = function (err) {
-  debug('error', err);
-  this.emitAll('error', err);
-};
-
-/**
- * Creates a new socket for the given `nsp`.
- *
- * @return {Socket}
- * @api public
- */
-
-Manager.prototype.socket = function (nsp, opts) {
-  var socket = this.nsps[nsp];
-  if (!socket) {
-    socket = new Socket(this, nsp, opts);
-    this.nsps[nsp] = socket;
-    var self = this;
-    socket.on('connecting', onConnecting);
-    socket.on('connect', function () {
-      socket.id = self.generateId(nsp);
-    });
-
-    if (this.autoConnect) {
-      // manually call here since connecting event is fired before listening
-      onConnecting();
-    }
-  }
-
-  function onConnecting () {
-    if (!~indexOf(self.connecting, socket)) {
-      self.connecting.push(socket);
-    }
-  }
-
-  return socket;
-};
-
-/**
- * Called upon a socket close.
- *
- * @param {Socket} socket
- */
-
-Manager.prototype.destroy = function (socket) {
-  var index = indexOf(this.connecting, socket);
-  if (~index) this.connecting.splice(index, 1);
-  if (this.connecting.length) return;
-
-  this.close();
-};
-
-/**
- * Writes a packet.
- *
- * @param {Object} packet
- * @api private
- */
-
-Manager.prototype.packet = function (packet) {
-  debug('writing packet %j', packet);
-  var self = this;
-  if (packet.query && packet.type === 0) packet.nsp += '?' + packet.query;
-
-  if (!self.encoding) {
-    // encode, then write to engine with result
-    self.encoding = true;
-    this.encoder.encode(packet, function (encodedPackets) {
-      for (var i = 0; i < encodedPackets.length; i++) {
-        self.engine.write(encodedPackets[i], packet.options);
-      }
-      self.encoding = false;
-      self.processPacketQueue();
-    });
-  } else { // add packet to the queue
-    self.packetBuffer.push(packet);
-  }
-};
-
-/**
- * If packet buffer is non-empty, begins encoding the
- * next packet in line.
- *
- * @api private
- */
-
-Manager.prototype.processPacketQueue = function () {
-  if (this.packetBuffer.length > 0 && !this.encoding) {
-    var pack = this.packetBuffer.shift();
-    this.packet(pack);
-  }
-};
-
-/**
- * Clean up transport subscriptions and packet buffer.
- *
- * @api private
- */
-
-Manager.prototype.cleanup = function () {
-  debug('cleanup');
-
-  var subsLength = this.subs.length;
-  for (var i = 0; i < subsLength; i++) {
-    var sub = this.subs.shift();
-    sub.destroy();
-  }
-
-  this.packetBuffer = [];
-  this.encoding = false;
-  this.lastPing = null;
-
-  this.decoder.destroy();
-};
-
-/**
- * Close the current socket.
- *
- * @api private
- */
-
-Manager.prototype.close =
-Manager.prototype.disconnect = function () {
-  debug('disconnect');
-  this.skipReconnect = true;
-  this.reconnecting = false;
-  if ('opening' === this.readyState) {
-    // `onclose` will not fire because
-    // an open event never happened
-    this.cleanup();
-  }
-  this.backoff.reset();
+Transport.prototype.onClose = function () {
   this.readyState = 'closed';
-  if (this.engine) this.engine.close();
-};
-
-/**
- * Called upon engine close.
- *
- * @api private
- */
-
-Manager.prototype.onclose = function (reason) {
-  debug('onclose');
-
-  this.cleanup();
-  this.backoff.reset();
-  this.readyState = 'closed';
-  this.emit('close', reason);
-
-  if (this._reconnection && !this.skipReconnect) {
-    this.reconnect();
-  }
-};
-
-/**
- * Attempt a reconnection.
- *
- * @api private
- */
-
-Manager.prototype.reconnect = function () {
-  if (this.reconnecting || this.skipReconnect) return this;
-
-  var self = this;
-
-  if (this.backoff.attempts >= this._reconnectionAttempts) {
-    debug('reconnect failed');
-    this.backoff.reset();
-    this.emitAll('reconnect_failed');
-    this.reconnecting = false;
-  } else {
-    var delay = this.backoff.duration();
-    debug('will wait %dms before reconnect attempt', delay);
-
-    this.reconnecting = true;
-    var timer = setTimeout(function () {
-      if (self.skipReconnect) return;
-
-      debug('attempting reconnect');
-      self.emitAll('reconnect_attempt', self.backoff.attempts);
-      self.emitAll('reconnecting', self.backoff.attempts);
-
-      // check again for the case socket closed in above events
-      if (self.skipReconnect) return;
-
-      self.open(function (err) {
-        if (err) {
-          debug('reconnect attempt error');
-          self.reconnecting = false;
-          self.reconnect();
-          self.emitAll('reconnect_error', err.data);
-        } else {
-          debug('reconnect success');
-          self.onreconnect();
-        }
-      });
-    }, delay);
-
-    this.subs.push({
-      destroy: function () {
-        clearTimeout(timer);
-      }
-    });
-  }
-};
-
-/**
- * Called upon successful reconnect.
- *
- * @api private
- */
-
-Manager.prototype.onreconnect = function () {
-  var attempt = this.backoff.attempts;
-  this.reconnecting = false;
-  this.backoff.reset();
-  this.updateSocketIds();
-  this.emitAll('reconnect', attempt);
+  this.emit('close');
 };
 
 
 /***/ }),
-/* 16 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {/**
- * Module dependencies
- */
-
-var XMLHttpRequest = __webpack_require__(7);
-var XHR = __webpack_require__(36);
-var JSONP = __webpack_require__(44);
-var websocket = __webpack_require__(45);
-
-/**
- * Export transports.
- */
-
-exports.polling = polling;
-exports.websocket = websocket;
-
-/**
- * Polling transport polymorphic constructor.
- * Decides on xhr vs jsonp based on feature detection.
- *
- * @api private
- */
-
-function polling (opts) {
-  var xhr;
-  var xd = false;
-  var xs = false;
-  var jsonp = false !== opts.jsonp;
-
-  if (global.location) {
-    var isSSL = 'https:' === location.protocol;
-    var port = location.port;
-
-    // some user agents have empty `location.port`
-    if (!port) {
-      port = isSSL ? 443 : 80;
-    }
-
-    xd = opts.hostname !== location.hostname || port !== opts.port;
-    xs = opts.secure !== isSSL;
-  }
-
-  opts.xdomain = xd;
-  opts.xscheme = xs;
-  xhr = new XMLHttpRequest(opts);
-
-  if ('open' in xhr && !opts.forceJSONP) {
-    return new XHR(opts);
-  } else {
-    if (!jsonp) throw new Error('JSONP disabled');
-    return new JSONP(opts);
-  }
-}
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 17 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/**
- * Module dependencies.
- */
-
-var Transport = __webpack_require__(8);
-var parseqs = __webpack_require__(4);
-var parser = __webpack_require__(3);
-var inherit = __webpack_require__(5);
-var yeast = __webpack_require__(18);
-var debug = __webpack_require__(1)('engine.io-client:polling');
-
-/**
- * Module exports.
- */
-
-module.exports = Polling;
-
-/**
- * Is XHR2 supported?
- */
-
-var hasXHR2 = (function () {
-  var XMLHttpRequest = __webpack_require__(7);
-  var xhr = new XMLHttpRequest({ xdomain: false });
-  return null != xhr.responseType;
-})();
-
-/**
- * Polling interface.
- *
- * @param {Object} opts
- * @api private
- */
-
-function Polling (opts) {
-  var forceBase64 = (opts && opts.forceBase64);
-  if (!hasXHR2 || forceBase64) {
-    this.supportsBinary = false;
-  }
-  Transport.call(this, opts);
-}
-
-/**
- * Inherits from Transport.
- */
-
-inherit(Polling, Transport);
-
-/**
- * Transport name.
- */
-
-Polling.prototype.name = 'polling';
-
-/**
- * Opens the socket (triggers polling). We write a PING message to determine
- * when the transport is open.
- *
- * @api private
- */
-
-Polling.prototype.doOpen = function () {
-  this.poll();
-};
-
-/**
- * Pauses polling.
- *
- * @param {Function} callback upon buffers are flushed and transport is paused
- * @api private
- */
-
-Polling.prototype.pause = function (onPause) {
-  var self = this;
-
-  this.readyState = 'pausing';
-
-  function pause () {
-    debug('paused');
-    self.readyState = 'paused';
-    onPause();
-  }
-
-  if (this.polling || !this.writable) {
-    var total = 0;
-
-    if (this.polling) {
-      debug('we are currently polling - waiting to pause');
-      total++;
-      this.once('pollComplete', function () {
-        debug('pre-pause polling complete');
-        --total || pause();
-      });
-    }
-
-    if (!this.writable) {
-      debug('we are currently writing - waiting to pause');
-      total++;
-      this.once('drain', function () {
-        debug('pre-pause writing complete');
-        --total || pause();
-      });
-    }
-  } else {
-    pause();
-  }
-};
-
-/**
- * Starts polling cycle.
- *
- * @api public
- */
-
-Polling.prototype.poll = function () {
-  debug('polling');
-  this.polling = true;
-  this.doPoll();
-  this.emit('poll');
-};
-
-/**
- * Overloads onData to detect payloads.
- *
- * @api private
- */
-
-Polling.prototype.onData = function (data) {
-  var self = this;
-  debug('polling got data %s', data);
-  var callback = function (packet, index, total) {
-    // if its the first message we consider the transport open
-    if ('opening' === self.readyState) {
-      self.onOpen();
-    }
-
-    // if its a close packet, we close the ongoing requests
-    if ('close' === packet.type) {
-      self.onClose();
-      return false;
-    }
-
-    // otherwise bypass onData and handle the message
-    self.onPacket(packet);
-  };
-
-  // decode payload
-  parser.decodePayload(data, this.socket.binaryType, callback);
-
-  // if an event did not trigger closing
-  if ('closed' !== this.readyState) {
-    // if we got data we're not polling
-    this.polling = false;
-    this.emit('pollComplete');
-
-    if ('open' === this.readyState) {
-      this.poll();
-    } else {
-      debug('ignoring poll - transport state "%s"', this.readyState);
-    }
-  }
-};
-
-/**
- * For polling, send a close packet.
- *
- * @api private
- */
-
-Polling.prototype.doClose = function () {
-  var self = this;
-
-  function close () {
-    debug('writing close packet');
-    self.write([{ type: 'close' }]);
-  }
-
-  if ('open' === this.readyState) {
-    debug('transport open - closing');
-    close();
-  } else {
-    // in case we're trying to close while
-    // handshaking is in progress (GH-164)
-    debug('transport not open - deferring close');
-    this.once('open', close);
-  }
-};
-
-/**
- * Writes a packets payload.
- *
- * @param {Array} data packets
- * @param {Function} drain callback
- * @api private
- */
-
-Polling.prototype.write = function (packets) {
-  var self = this;
-  this.writable = false;
-  var callbackfn = function () {
-    self.writable = true;
-    self.emit('drain');
-  };
-
-  parser.encodePayload(packets, this.supportsBinary, function (data) {
-    self.doWrite(data, callbackfn);
-  });
-};
-
-/**
- * Generates uri for connection.
- *
- * @api private
- */
-
-Polling.prototype.uri = function () {
-  var query = this.query || {};
-  var schema = this.secure ? 'https' : 'http';
-  var port = '';
-
-  // cache busting is forced
-  if (false !== this.timestampRequests) {
-    query[this.timestampParam] = yeast();
-  }
-
-  if (!this.supportsBinary && !query.sid) {
-    query.b64 = 1;
-  }
-
-  query = parseqs.encode(query);
-
-  // avoid port if default for schema
-  if (this.port && (('https' === schema && Number(this.port) !== 443) ||
-     ('http' === schema && Number(this.port) !== 80))) {
-    port = ':' + this.port;
-  }
-
-  // prepend ? to query
-  if (query.length) {
-    query = '?' + query;
-  }
-
-  var ipv6 = this.hostname.indexOf(':') !== -1;
-  return schema + '://' + (ipv6 ? '[' + this.hostname + ']' : this.hostname) + port + this.path + query;
-};
-
-
-/***/ }),
-/* 18 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split('')
-  , length = 64
-  , map = {}
-  , seed = 0
-  , i = 0
-  , prev;
-
-/**
- * Return a string representing the specified number.
- *
- * @param {Number} num The number to convert.
- * @returns {String} The string representation of the number.
- * @api public
- */
-function encode(num) {
-  var encoded = '';
-
-  do {
-    encoded = alphabet[num % length] + encoded;
-    num = Math.floor(num / length);
-  } while (num > 0);
-
-  return encoded;
-}
-
-/**
- * Return the integer value specified by the given string.
- *
- * @param {String} str The string to convert.
- * @returns {Number} The integer value represented by the string.
- * @api public
- */
-function decode(str) {
-  var decoded = 0;
-
-  for (i = 0; i < str.length; i++) {
-    decoded = decoded * length + map[str.charAt(i)];
-  }
-
-  return decoded;
-}
-
-/**
- * Yeast: A tiny growing id generator.
- *
- * @returns {String} A unique id.
- * @api public
- */
-function yeast() {
-  var now = encode(+new Date());
-
-  if (now !== prev) return seed = 0, prev = now;
-  return now +'.'+ encode(seed++);
-}
-
-//
-// Map each character to its index.
-//
-for (; i < length; i++) map[alphabet[i]] = i;
-
-//
-// Expose the `yeast`, `encode` and `decode` functions.
-//
-yeast.encode = encode;
-yeast.decode = decode;
-module.exports = yeast;
-
-
-/***/ }),
-/* 19 */
-/***/ (function(module, exports) {
-
-
-var indexOf = [].indexOf;
-
-module.exports = function(arr, obj){
-  if (indexOf) return arr.indexOf(obj);
-  for (var i = 0; i < arr.length; ++i) {
-    if (arr[i] === obj) return i;
-  }
-  return -1;
-};
-
-/***/ }),
-/* 20 */
-/***/ (function(module, exports, __webpack_require__) {
-
-
-/**
- * Module dependencies.
- */
-
-var parser = __webpack_require__(6);
-var Emitter = __webpack_require__(2);
-var toArray = __webpack_require__(47);
-var on = __webpack_require__(21);
-var bind = __webpack_require__(22);
-var debug = __webpack_require__(1)('socket.io-client:socket');
-var parseqs = __webpack_require__(4);
-
-/**
- * Module exports.
- */
-
-module.exports = exports = Socket;
-
-/**
- * Internal events (blacklisted).
- * These events can't be emitted by the user.
- *
- * @api private
- */
-
-var events = {
-  connect: 1,
-  connect_error: 1,
-  connect_timeout: 1,
-  connecting: 1,
-  disconnect: 1,
-  error: 1,
-  reconnect: 1,
-  reconnect_attempt: 1,
-  reconnect_failed: 1,
-  reconnect_error: 1,
-  reconnecting: 1,
-  ping: 1,
-  pong: 1
-};
-
-/**
- * Shortcut to `Emitter#emit`.
- */
-
-var emit = Emitter.prototype.emit;
-
-/**
- * `Socket` constructor.
- *
- * @api public
- */
-
-function Socket (io, nsp, opts) {
-  this.io = io;
-  this.nsp = nsp;
-  this.json = this; // compat
-  this.ids = 0;
-  this.acks = {};
-  this.receiveBuffer = [];
-  this.sendBuffer = [];
-  this.connected = false;
-  this.disconnected = true;
-  if (opts && opts.query) {
-    this.query = opts.query;
-  }
-  if (this.io.autoConnect) this.open();
-}
-
-/**
- * Mix in `Emitter`.
- */
-
-Emitter(Socket.prototype);
-
-/**
- * Subscribe to open, close and packet events
- *
- * @api private
- */
-
-Socket.prototype.subEvents = function () {
-  if (this.subs) return;
-
-  var io = this.io;
-  this.subs = [
-    on(io, 'open', bind(this, 'onopen')),
-    on(io, 'packet', bind(this, 'onpacket')),
-    on(io, 'close', bind(this, 'onclose'))
-  ];
-};
-
-/**
- * "Opens" the socket.
- *
- * @api public
- */
-
-Socket.prototype.open =
-Socket.prototype.connect = function () {
-  if (this.connected) return this;
-
-  this.subEvents();
-  this.io.open(); // ensure open
-  if ('open' === this.io.readyState) this.onopen();
-  this.emit('connecting');
-  return this;
-};
-
-/**
- * Sends a `message` event.
- *
- * @return {Socket} self
- * @api public
- */
-
-Socket.prototype.send = function () {
-  var args = toArray(arguments);
-  args.unshift('message');
-  this.emit.apply(this, args);
-  return this;
-};
-
-/**
- * Override `emit`.
- * If the event is in `events`, it's emitted normally.
- *
- * @param {String} event name
- * @return {Socket} self
- * @api public
- */
-
-Socket.prototype.emit = function (ev) {
-  if (events.hasOwnProperty(ev)) {
-    emit.apply(this, arguments);
-    return this;
-  }
-
-  var args = toArray(arguments);
-  var packet = { type: parser.EVENT, data: args };
-
-  packet.options = {};
-  packet.options.compress = !this.flags || false !== this.flags.compress;
-
-  // event ack callback
-  if ('function' === typeof args[args.length - 1]) {
-    debug('emitting packet with ack id %d', this.ids);
-    this.acks[this.ids] = args.pop();
-    packet.id = this.ids++;
-  }
-
-  if (this.connected) {
-    this.packet(packet);
-  } else {
-    this.sendBuffer.push(packet);
-  }
-
-  delete this.flags;
-
-  return this;
-};
-
-/**
- * Sends a packet.
- *
- * @param {Object} packet
- * @api private
- */
-
-Socket.prototype.packet = function (packet) {
-  packet.nsp = this.nsp;
-  this.io.packet(packet);
-};
-
-/**
- * Called upon engine `open`.
- *
- * @api private
- */
-
-Socket.prototype.onopen = function () {
-  debug('transport is open - connecting');
-
-  // write connect packet if necessary
-  if ('/' !== this.nsp) {
-    if (this.query) {
-      var query = typeof this.query === 'object' ? parseqs.encode(this.query) : this.query;
-      debug('sending connect packet with query %s', query);
-      this.packet({type: parser.CONNECT, query: query});
-    } else {
-      this.packet({type: parser.CONNECT});
-    }
-  }
-};
-
-/**
- * Called upon engine `close`.
- *
- * @param {String} reason
- * @api private
- */
-
-Socket.prototype.onclose = function (reason) {
-  debug('close (%s)', reason);
-  this.connected = false;
-  this.disconnected = true;
-  delete this.id;
-  this.emit('disconnect', reason);
-};
-
-/**
- * Called with socket packet.
- *
- * @param {Object} packet
- * @api private
- */
-
-Socket.prototype.onpacket = function (packet) {
-  if (packet.nsp !== this.nsp) return;
-
-  switch (packet.type) {
-    case parser.CONNECT:
-      this.onconnect();
-      break;
-
-    case parser.EVENT:
-      this.onevent(packet);
-      break;
-
-    case parser.BINARY_EVENT:
-      this.onevent(packet);
-      break;
-
-    case parser.ACK:
-      this.onack(packet);
-      break;
-
-    case parser.BINARY_ACK:
-      this.onack(packet);
-      break;
-
-    case parser.DISCONNECT:
-      this.ondisconnect();
-      break;
-
-    case parser.ERROR:
-      this.emit('error', packet.data);
-      break;
-  }
-};
-
-/**
- * Called upon a server event.
- *
- * @param {Object} packet
- * @api private
- */
-
-Socket.prototype.onevent = function (packet) {
-  var args = packet.data || [];
-  debug('emitting event %j', args);
-
-  if (null != packet.id) {
-    debug('attaching ack callback to event');
-    args.push(this.ack(packet.id));
-  }
-
-  if (this.connected) {
-    emit.apply(this, args);
-  } else {
-    this.receiveBuffer.push(args);
-  }
-};
-
-/**
- * Produces an ack callback to emit with an event.
- *
- * @api private
- */
-
-Socket.prototype.ack = function (id) {
-  var self = this;
-  var sent = false;
-  return function () {
-    // prevent double callbacks
-    if (sent) return;
-    sent = true;
-    var args = toArray(arguments);
-    debug('sending ack %j', args);
-
-    self.packet({
-      type: parser.ACK,
-      id: id,
-      data: args
-    });
-  };
-};
-
-/**
- * Called upon a server acknowlegement.
- *
- * @param {Object} packet
- * @api private
- */
-
-Socket.prototype.onack = function (packet) {
-  var ack = this.acks[packet.id];
-  if ('function' === typeof ack) {
-    debug('calling ack %s with %j', packet.id, packet.data);
-    ack.apply(this, packet.data);
-    delete this.acks[packet.id];
-  } else {
-    debug('bad ack %s', packet.id);
-  }
-};
-
-/**
- * Called upon server connect.
- *
- * @api private
- */
-
-Socket.prototype.onconnect = function () {
-  this.connected = true;
-  this.disconnected = false;
-  this.emit('connect');
-  this.emitBuffered();
-};
-
-/**
- * Emit buffered events (received and emitted).
- *
- * @api private
- */
-
-Socket.prototype.emitBuffered = function () {
-  var i;
-  for (i = 0; i < this.receiveBuffer.length; i++) {
-    emit.apply(this, this.receiveBuffer[i]);
-  }
-  this.receiveBuffer = [];
-
-  for (i = 0; i < this.sendBuffer.length; i++) {
-    this.packet(this.sendBuffer[i]);
-  }
-  this.sendBuffer = [];
-};
-
-/**
- * Called upon server disconnect.
- *
- * @api private
- */
-
-Socket.prototype.ondisconnect = function () {
-  debug('server disconnect (%s)', this.nsp);
-  this.destroy();
-  this.onclose('io server disconnect');
-};
-
-/**
- * Called upon forced client/server side disconnections,
- * this method ensures the manager stops tracking us and
- * that reconnections don't get triggered for this.
- *
- * @api private.
- */
-
-Socket.prototype.destroy = function () {
-  if (this.subs) {
-    // clean subscriptions to avoid reconnections
-    for (var i = 0; i < this.subs.length; i++) {
-      this.subs[i].destroy();
-    }
-    this.subs = null;
-  }
-
-  this.io.destroy(this);
-};
-
-/**
- * Disconnects the socket manually.
- *
- * @return {Socket} self
- * @api public
- */
-
-Socket.prototype.close =
-Socket.prototype.disconnect = function () {
-  if (this.connected) {
-    debug('performing disconnect (%s)', this.nsp);
-    this.packet({ type: parser.DISCONNECT });
-  }
-
-  // remove socket from pool
-  this.destroy();
-
-  if (this.connected) {
-    // fire events
-    this.onclose('io client disconnect');
-  }
-  return this;
-};
-
-/**
- * Sets the compress flag.
- *
- * @param {Boolean} if `true`, compresses the sending data
- * @return {Socket} self
- * @api public
- */
-
-Socket.prototype.compress = function (compress) {
-  this.flags = this.flags || {};
-  this.flags.compress = compress;
-  return this;
-};
-
-
-/***/ }),
-/* 21 */
-/***/ (function(module, exports) {
-
-
-/**
- * Module exports.
- */
-
-module.exports = on;
-
-/**
- * Helper for subscriptions.
- *
- * @param {Object|EventEmitter} obj with `Emitter` mixin or `EventEmitter`
- * @param {String} event name
- * @param {Function} callback
- * @api public
- */
-
-function on (obj, ev, fn) {
-  obj.on(ev, fn);
-  return {
-    destroy: function () {
-      obj.removeListener(ev, fn);
-    }
-  };
-}
-
-
-/***/ }),
-/* 22 */
-/***/ (function(module, exports) {
-
-/**
- * Slice reference.
- */
-
-var slice = [].slice;
-
-/**
- * Bind `obj` to `fn`.
- *
- * @param {Object} obj
- * @param {Function|String} fn or string
- * @return {Function}
- * @api public
- */
-
-module.exports = function(obj, fn){
-  if ('string' == typeof fn) fn = obj[fn];
-  if ('function' != typeof fn) throw new Error('bind() requires a function');
-  var args = slice.call(arguments, 2);
-  return function(){
-    return fn.apply(obj, args.concat(slice.call(arguments)));
-  }
-};
-
-
-/***/ }),
-/* 23 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__main_scss__ = __webpack_require__(24);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__main_scss___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__main_scss__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__sketch__ = __webpack_require__(25);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_socket_io_client__ = __webpack_require__(27);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_socket_io_client___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_socket_io_client__);
-
-
-
-
-var CONFIG = __webpack_require__(10)
-
-var FastClick = __webpack_require__(49);						// remove the 300ms delay between touches
-FastClick.attach(document.body);
-
-var socket = __WEBPACK_IMPORTED_MODULE_2_socket_io_client___default()()
-
-var index = 0,
-	total = 0,
-	voice = 0,
-	active = false
-
-var button = ''
-
-
-/**
- * Initalize page on first request and also on refresh
- *
- */
-
-Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["b" /* sketch */])(socket, callbackFromSketch)
-
-
-
-socket.on('connect', function() {
-
-	if(CONFIG.DEBUG) {
-		console.log('(Re)Connected to server')
-	}
-
-})
-
-socket.on('disconnect', function() {
-
-	if(CONFIG.DEBUG) {
-		console.log('Disconnected from server (shutdown sounds if any)')
-	}
-
-	Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["d" /* stopAudio */])()
-})
-
-socket.on("boot", function(user) {
-	if(CONFIG.DEBUG) {
-		console.log('Boot: ', user)
-	}
-
-	index = user.index
-	total = user.index
-	voice = user.voice
-	active = false
-
-
-
-	// clear default classes
-	
-	document.body.className = ''
-
-
-	// load the sketch with data
-
-	window.loadSketch(user)
-
-
-	// update document style
-	
-	document.body.classList.add('is-voice-' + voice)
-
-
-	// bind default click event to button
-
-	// clear events (re-connections bind the same event twice!)
-	button = document.getElementById('enter')
-	button.removeEventListener('click', joinEvent)
-	button.removeEventListener('click', resumeEvent)
-	button.addEventListener('click', loadEvent)
-
-
-	// bind default click to header
-
-	document.getElementById('back').addEventListener('click', backEvent)
-
-
-	// add orientation event for pausing/starting audio when already singing
-
-	orientationEvents()
-
-	
-	// update label (default text)
-
-	updateButtonLabel('loading')
-
-
-	// Update the user interface
-
-	updateCounterLabel()
-})
-
-/**
- * Update the index
- *
- */
-
-
-socket.on("index", function(i) {
-	index = i
-
-	updateCounterLabel()
-})
-
-
-/**
- * Update the total
- *
- */
-
-
-socket.on("total", function(i) {
-	total = i
-
-	updateCounterLabel()
-})
-
-
-
-function callbackFromSketch(){
-	// update document style
-
-	document.body.classList.add('is-ready')
-
-
-	// bind new click event to button
-
-	button.removeEventListener('click', loadEvent)
-
-
-	// callback to server (retrieve current playheads (?))
-
-	socket.emit('ready')
-
-
-	// update the label
-
-	updateButtonLabel('join the<br/>choir')									// button text when loading is complete
-
-
-	// add new click event to join the choir
-
-	button.addEventListener('click', joinEvent)
-}
-
-var loadEvent = function(e){
-	e.preventDefault()
-
-	if(CONFIG.ENV == 'dev'){
-		console.log("Click on Loading")
-	}
-}
-
-var joinEvent = function(e){
-	startSketch(e, function(){
-		if(CONFIG.ENV == 'dev'){
-			console.log("Joined the choir")
-		}
-
-		// immediatly remove this click event so that it can't be triggered twice
-
-		button.removeEventListener('click', joinEvent)
-
-
-		// notify server
-		
-		socket.emit('joined')
-
-		// add the new click event
-
-		button.addEventListener('click', resumeEvent)
-
-
-		// update the label
-
-		updateButtonLabel('resume')
-	})
-}
-
-var resumeEvent = function(e){
-	startSketch(e, function(){
-		if(CONFIG.ENV == 'dev'){
-			console.log("Resumed the choir")
-		}
-
-		// notify server
-
-		socket.emit('resume')
-	})
-}
-
-var backEvent = function(e){
-	e.preventDefault()
-
-	if(CONFIG.ENV == 'dev'){
-		console.log("Left the choir")
-	}
-
-
-	// update document style
-
-	document.body.classList.remove('is-soundbox')
-
-	// set active to false for orientation event
-
-	active = false										
-
-
-	// notify server
-
-	socket.emit("left")
-
-
-	// Stop the audio from playing
-
-	Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["a" /* pauseAudio */])()
-} 
-
-function startSketch(e, fn){
-	e.preventDefault()
-
-	if(fn && typeof(fn) === "function") {
-		fn()
-	}
-
-	// update document style
-
-	document.body.classList.add('is-soundbox')
-
-	// set active to true for orientation event
-
-	active = true
-
-	// the sketch is by default paused to prevent sound from home
-	// and start the audio files from the beginning
-
-	Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["c" /* startAudio */])()
-
-	// updateCounterLabel()	
-}
-
-function orientationEvents() {
-	var screenOrientation = getOrientation()
-
-	window.onresize = function(event) {
-		 var _screenOrientation = getOrientation()
-
-		 if(screenOrientation != _screenOrientation) {
-
-		 	if(screenOrientation == 0) {														// landscape
-
-		 		if(CONFIG.ENV == 'dev') {
-		 			console.log("Orientation: landscape")
-		 		}
-
-		 		if(active) {
-		 			Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["a" /* pauseAudio */])()
-		 		}
-
-		 	}else if(screenOrientation == 90) {													// portrait
-		 		if(CONFIG.ENV == 'dev') {
-		 			console.log("Orientation: portrait")
-		 		}
-
-		 		if(active) {
-		 			Object(__WEBPACK_IMPORTED_MODULE_1__sketch__["c" /* startAudio */])()
-		 		}
-		 	}
-		 }
-
-		 screenOrientation = _screenOrientation
-	}
-
-	function getOrientation() {
-		return window.innerWidth > window.innerHeight? 90 : 0
-	}
-}
-
-function updateButtonLabel(str) {
-	document.getElementById('svg_label').innerHTML = str
-}
-
-function updateCounterLabel() {
-	document.getElementById('index').innerHTML = index
-	document.getElementById('total').innerHTML = total
-}
-
-/***/ }),
-/* 24 */
-/***/ (function(module, exports) {
-
-// removed by extract-text-webpack-plugin
-
-/***/ }),
-/* 25 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return sketch; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return startAudio; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return stopAudio; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return pauseAudio; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_p5__ = __webpack_require__(9);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_p5___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_p5__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_p5_lib_addons_p5_sound__ = __webpack_require__(26);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_p5_lib_addons_p5_sound___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_p5_lib_addons_p5_sound__);
-
-
-
-const CONFIG = __webpack_require__(10)
-
-var MARGIN_WIDTH = 50
-var MAX_WIDTH = 500 + MARGIN_WIDTH
-var ASPECT_RATIO_HEIGHT = 1.11
-	
-var voice = 0
-var pause = true
-
-var circles = []
-
-var myFont = 'Helvetica'
-var fontSize = 36
-
-var sketch = function(socket, callback){
-	window.preload = function() {
-		soundFormats('mp3')
-	}
-
-	window.windowResized = function() {
-		var dim = getCanvasDimensions()
-	  	resizeCanvas(dim.w, dim.h)
-	}
-
-	window.setup = function() {
-		var dim = getCanvasDimensions()
-		createCanvas(dim.w, dim.h)
-
-
-		//
-
-		/*
-		socket.on("bang", function(v){
-			//console.log('- bang received', v)
-
-			// pick a circle
-			var index = int(random(circles.length))
-			var circle = circles[index]
-
-			// and tell it to sing a fragment on the next roundabout
-			circle.doFragment()
-		})
-		*/
-
-		// reset default mouse positions
-
-		mouseX = -1
-		mouseY = -1
-	}
-
-
-	/**
-	 * This function is always called whenever the connection is (re)-connected
-	 *
-	 * This is true for the following tested browsers: Firefox, Chrome, Safari
-	 *
-	 */
-
-	window.loadSketch = function(user){
-  		myFont = loadFont('/font/naturamedium-regular-webfont.ttf')
-
-  		textFont(myFont);
-		textSize(fontSize)
-
-		voice = user.voice
-
-		circles = []													// reset the circles
-
-		circles.push( new Circle(1, 200, 0.05) )						// 1
-		circles.push( new Circle(2, 200, 0.1) )							// 2
-		circles.push( new Circle(3, 250, 0.005) )						// 3
-		circles.push( new Circle(4, 150, 0.2) )							// 4
-
-		circles.forEach(function(circle, i) {
-			var src = '/sound/' + voice + '-' + i +'.mp3'
-			var cueSrc = '/cues/' + voice + '-' + i +'.txt'
-
-			/*
-			loadSound(src, function(sound) {					// async
-
-				if(CONFIG.DEBUG) {
-					console.log("Sound loaded: " + src)
-				}
-
-				circle.setSound(sound)
-
-				loadStrings(cueSrc, function(data){
-					
-					if(CONFIG.DEBUG) {
-						console.log("Cue loaded: " + cueSrc)
-					}
-
-					circle.setCues(data)
-
-					if(allLoaded(circles)) {
-						if(CONFIG.DEBUG) {
-							console.log("All loaded")
-						}
-
-						// when ALL is loaded, make the front-end button active!
-
-						callback()
-					}
-				})
-			}, function(){
-				console.log('error while loading: ' + src )
-			})
-			*/
-
-
-			loadCircle(src, cueSrc)
-
-			function loadCircle(src, cueSrc){
-				loadSound(src, function(sound) {					// async
-
-					if(CONFIG.DEBUG) {
-						console.log("Sound loaded: " + src)
-					}
-
-					circle.setSound(sound)
-
-					loadStrings(cueSrc, function(data){
-						
-						if(CONFIG.DEBUG) {
-							console.log("Cue loaded: " + cueSrc)
-						}
-
-						circle.setCues(data)
-
-						if(allLoaded(circles)) {
-							if(CONFIG.DEBUG) {
-								console.log("All loaded")
-							}
-
-							// when ALL is loaded, make the front-end button active!
-
-							callback()
-						}
-					})
-				}, function(){
-					
-					if(CONFIG.DEBUG) {
-						console.log('error while loading: ' + src )
-						console.log('reloading ' + src)
-					}
-
-					loadCircle(src, cueSrc)
-				})
-			}
-
-
-
-			/*
-			circle.setFragments(4)
-
-			for(var i = 0; i < 4; i++){
-				var index = i + 1
-				var fragmentSrc = '/sound/extra' + index +'.mp3'
-				let _i = i
-
-				loadSound(fragmentSrc, function(sound){
-					circle.addFragment(sound, _i)
-				})
-			}
-			*/
-
-
-		})	
-	}
-
-	window.draw = function() {
-		// Capture the position of the mouse (or touch)
-
-		var x = mouseX
-		var y = mouseY
-
-		background(0)
-		noCursor()
-
-		if(!pause) {
-			circles.forEach(function(c) {
-				c.update(x, y)
-			})
-		}
-
-		drawCircles(circles)
-
-		drawText()
-
-		if(pause) {
-			muteCircles(true)	
-			return false
-		}
-
-		if(onCanvas(x,y)) {
-			drawSpider(circles, x, y)
-			drawCenter(x, y)
-
-			if(arePlayingSolo(circles)) {
-
-				circles.forEach(function(c) {
-					if(c.inside){
-						c.setMute(false)
-					} else {
-						c.setMute(true)
-					}
-				})
-
-			}else{
-				muteCircles(false)
-			}
-
-		}else{
-			muteCircles(true)
-		}
-	}
-
-	function arePlayingSolo(circles) {
-		var flag = false
-
-		circles.forEach(function(c) {
-			if(c.inside) {
-				flag = true
-			}
-		})
-
-		return flag
-	}
-
-	function muteCircles(b) {
-		circles.forEach(function(c) {
-			c.setMute(b)
-		})
-	}
-
-	function drawText() {
-		var padding = 10
-
-		var top = 30 + padding/2
-		var bottom = height + 10 - padding * 2
-		
-		var left = padding
-		var right = width - padding
-
-		fill(getColor())
-		strokeWeight(0)
-
-		textAlign(LEFT)
-		text(1, left, top)
-		text(3, left, bottom)
-
-		textAlign(RIGHT)
-		text(2, right, top)
-		text(4, right, bottom)
-	}
-
-	function drawCircles(circles) {
-		var steps = 10
-		var stepX = width/steps
-		var stepY = height/steps
-
-		stroke(getColor())
-		noFill()
-		strokeWeight(1)
-
-		rect(0, 0, width - 1, height - 2)
-		
-		if(circles.length > 0){
-			circles[0].draw(stepX * 3, stepY * 2)
-			circles[1].draw(stepX * 7, stepY * 3)
-			circles[2].draw(stepX * 3, stepY * 6)
-			circles[3].draw(stepX * 7, stepY * 7)
-		}
-	}
-
-	function drawCenter(x, y) {
-		fill(255, 50)
-		fill(getColor())
-		noStroke()
-		ellipse(x, y, 5, 5)
-	}
-
-	function drawSpider(circles, x, y) {
-		stroke(255, 100)
-		strokeWeight(1)
-
-		circles.forEach(function(circle) {
-			var rad = circle.getScaledRad()
-
-			var center = createVector(circle.x, circle.y)									// center of circle
-			var playhead = createVector(circle.x + circle.timeX, circle.y + circle.timeY)		// moving playhead point
-
-			// mouse to playhead position on the circle
-			var mouse = createVector(x, y)
-			mouse.sub(playhead)
-
-			// get distance from to center
-			var d = dist(x, y, circle.x, circle.y)
-			d = constrain(d, 0, rad)
-			d = map(d, 0, rad, 10, 0)
-
-			var vol = map(d, 10, 0, 1, 0)
-			var opacity = map(vol, 0, 1, 100, 255)
-
-			// get distance to outerCircle
-			var dOuterCircle = dist(x, y, circle.x, circle.y)
-			dOuterCircle -= rad
-
-			var volOuterCircle = constrain(map(dOuterCircle, 0, 30, 1, 0), 0, 1)
-			var opacityOuterCircle = map(volOuterCircle, 0, 1, 0, 255)
-
-			// update sound
-
-			var volume = volOuterCircle
-
-			if(circle.inside){
-				volume = 1
-			}
-
-			// set volume to circle
-			circle.setVolume(volume)
-
-			// display
-			stroke(getColor(opacityOuterCircle))
-
-			if(!arePlayingSolo(circles)){
-				draw()
-			}else{
-				if(circle.inside){
-					draw()
-				}
-			}
-
-			function draw(){
-				if(circle.silence){
-					stroke(getColorDimmed(opacityOuterCircle))
-					return false
-				}
-
-				push()
-				translate(playhead.x, playhead.y)
-				line(0, 0, mouse.x, mouse.y)
-				pop()
-			}
-		})
-	}
-
-	function onCanvas(x, y) {
-		if(x >= 0 && x <= width && y >= 0 && y <= height) {
-			return true
-		}
-		
-		return false
-	}
-
-	function Circle(id, rad, acc) {	
-		this.id = id
-		this.rad = rad
-		this.acc = acc
-
-		this.rot = 0
-
-		this.x = 0
-		this.y = 0
-
-		this.timeX = 0
-		this.timeY = 0
-
-		this.sound = null
-		
-		this.volume = 0
-		this.mute = true
-		this.silence = true
-
-		this.fragments = []
-		this.fragment = null
-		this.playFragment = false
-
-		this.inside = false
-
-		this.scaledRad = rad * scalePercent()
-
-		this.cuesLoaded = false
-	  
-		this.update = function(x, y) {
-			this.rot += this.acc
-			this.scaledRad = this.rad * scalePercent()
-
-			// Inside circle?
-			this.inside = this.isInside(x, y)
-
-			// Muted?
-			if(this.isLoaded()) {
-				if(this.mute) {
-					this.sound.setVolume(0)
-
-					if(this.isSoundLoaded(this.fragment)){
-						this.fragment.setVolume(0)
-					}
-				}else{
-					this.sound.setVolume(this.volume)
-
-					if(this.isSoundLoaded(this.fragment)){
-						this.fragment.setVolume(this.volume)
-					}
-				}
-			}
-		}
-
-		this.setSound = function(_sound) {			
-			this.sound = _sound
-
-			/*
-			 * IMPORTANT
-			 *
-			 *  this function is also called when you start from the beginning!
-			 *
-			 *
-			 */
-			
-			this.sound.onended(() => {
-				if(pause){
-					return false
-				}
-
-				//console.log('Circle #' + this.id + ' ended')
-
-				// play a fragment if is being set by the master node clock
-
-				/*
-				if(_this.fragments.length > 0 && _this.playFragment) {
-
-					var fragmentIndex = int(random(_this.fragments.length))
-					var fragment = _this.fragments[ fragmentIndex ]
-
-					_this.fragment = fragment
-
-					if(this.mute) {
-						fragment.setVolume(0)
-					}else{
-						fragment.setVolume(this.volume)
-					}
-
-					_this.playFragment = false
-
-					fragment.play()
-				}
-				*/
-
-				this.play()
-				//console.log('Circle #' + this.id + ' looped')
-			})
-			
-
-		}
-
-		this.setCues = function(data){
-			// this function presumes that the sound is already loaded
-			var _this = this
-	
-			data.forEach(function(line){
-				var parts = split(line, '\t')
-				var time = parseFloat(parts[0])
-				var val = parts[1]
-				
-				_this.sound.addCue(time, _this.fadeStroke, {
-					_this: _this,
-					val: val
-				})
-			})
-
-			this.cuesLoaded = true
-		}
-
-		this.fadeStroke = function(data){
-			var _this = data._this
-			var type = data.val
-
-			if(type == 'in'){
-				_this.silence = false
-			}else if(type == 'out'){
-				_this.silence = true
-			}
-		}
-
-		this.setMute = function(b) {
-			this.mute = b
-		}
-
-		this.draw = function(x, y) {
-			var rad = this.scaledRad
-
-			this.x = x
-			this.y = y
-
-			this.timeX = - cos(this.rot) * rad / 2
-			this.timeY = - sin(this.rot) * rad / 2
-
-			
-			// Draw it
-			noFill()
-			stroke(getColor())
-			strokeWeight(1)
-
-			if(this.silence){
-				stroke(getColorDimmed())
-			}
-
-			push()
-			translate(x, y)
-			ellipse(0, 0, rad, rad)
-			line(0, 0, this.timeX, this.timeY)
-			pop()
-		}
-
-		this.isInside = function(x, y) {
-			if(dist(this.x, this.y, x, y) < this.getScaledRad()/2) {
-				return true
-			}
-
-			return false
-		}
-
-		this.isLoaded = function() {
-			if(this.isSoundLoaded(this.sound) && this.cuesLoaded){
-				return true
-			}
-
-			return false
-		}
-
-		this.isSoundLoaded = function(s){
-			if(s != null && s.isLoaded()) {
-				return true
-			}
-
-			return false
-		}
-
-		this.setFragments = function(len){
-			this.fragments = [len]
-		}
-
-		this.addFragment = function(sound, i){
-			this.fragments[i] = sound
-		}
-
-		this.play = function(){
-			//this.sound.loop()
-			this.sound.play()
-		}
-
-		this.setVolume = function(f) {
-			this.volume = f
-		}
-
-		this.getVolume = function() {
-			return this.volume
-		}
-
-		this.getScaledRad = function() {
-			return this.scaledRad
-		}
-
-		this.doFragment = function(){
-			this.playFragment = true
-		}
-	}
-
-	function getCanvasDimensions() {
-		var w = constrain(windowWidth, 0, MAX_WIDTH)
-		w -= MARGIN_WIDTH									// Having a margin around the canvas
-
-		var h = w * ASPECT_RATIO_HEIGHT
-
-		return {
-			w,
-			h
-		}
-	}
-
-	function scalePercent() {
-		return (width / MAX_WIDTH)
-	}
-
-	function allLoaded(circles) {
-		var flag = true
-
-		circles.forEach(function(c) {
-			if(!c.isLoaded()) {
-				flag = false
-			}
-		})
-
-		return flag
-	}
-
-	function play(circles) {
-		circles.forEach(function(c) {
-			c.play()
-		})
-	}
-
-	function getColor(opacity = 255) {
-		var clr = CONFIG.COLORS[voice]
-		return color(clr[0], clr[1], clr[2], opacity)
-	}
-
-	function getColorDimmed(initialValue){
-		if(initialValue < 125){
-			return getColor(initialValue)	
-		}
-
-		return getColor(125)
-	}
-}
-
-var startAudio = function(){
-	circles.forEach(function(c) {
-		//c.sound.jump()												// jump to the beginning of each soundfile
-		c.sound.play()													// resume playing from where they are
-	})
-
-	pause = false
-}
-
-var pauseAudio = function(){
-	pause = true
-
-	circles.forEach(function(c) {
-		c.sound.pause()													// resume playing from where they are
-	})
-}
-
-var stopAudio = function(){
-	pause = true														// needed to prevent the loop from kicking in
-
-	circles.forEach(function(c) {
-		c.sound.pause()													// Safari throws an error when calling stop() ...
-	})
-}
-
-
-
-/***/ }),
-/* 26 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*! p5.sound.js v0.3.5 2017-07-28 */
@@ -75834,7 +73216,7 @@ var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*! p5.sound.js 
 
 (function (root, factory) {
   if (true)
-    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(9)], __WEBPACK_AMD_DEFINE_RESULT__ = (function (p5) { (factory(p5));}).apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
+    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(6)], __WEBPACK_AMD_DEFINE_RESULT__ = (function (p5) { (factory(p5));}).apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
 				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
   else if (typeof exports === 'object')
     factory(require('../p5'));
@@ -86290,7 +83672,194 @@ src_app = function () {
 
 
 /***/ }),
-/* 27 */
+/* 11 */
+/***/ (function(module, exports) {
+
+module.exports = {
+	ENV: 						'production',					// 'dev' or 'production'
+	WEMOS_ADDRESS: 				'http://192.168.42.101',		// WeMos ip address for sending GET requests to control electronics
+	DEBUG: 						false,
+	SKIP_PANDA: 				false,							// while doing production but not wanting to deal with pyropanda
+	INFINITE_MOTORS: 			true,							// if [true], boot system with infinite rotating motors
+
+	PING_INTERVAL: 				5000,							// time (ms) for doing an interval request to Pyropanda
+	PING_TIMEOUT: 				5000,							// time (ms) for timeout before sending the default settings to PyroPanda after a successfull ping
+
+	COLOR_WHEEL: 				true,    						// if [true], roll through all singing voices after someone joins the choir
+	COLOR_WHEEL_INTERVAL: 		16000,							// time (ms) for color wheel interval
+	COLOR_WHEEL_NEW_TIMEOUT: 	1000,							// time (ms) for timeout before starting the interval
+
+	DEFAULT_LED_COLOR: 			'111111',						// default LED color
+
+	LED_COLORS: [												// LED
+								'0D1D16',						// blue
+								'11250D',						// green
+								'312906',						// yellow
+								'200704'						// red
+	],
+
+	MAX_VOICES: 				4,								// maximum amount of voices for the choir
+
+	SKETCH: {
+		ASPECT_RATIO_HEIGHT: 	1.11,							// the width of the canvas determines the height
+		MARGIN: 				50,								// equals: left and right || top and bottom
+		MAX_WIDTH: 				550,							// equals WIDTH (500) and MARGIN (50)
+		COLORS: [
+								[39, 129, 168],					// blue
+								[58, 117, 91], 					// green
+								[237, 217, 130],				// yellow
+								[168, 39, 39]					// red
+		]
+	}
+}
+
+/***/ }),
+/* 12 */
+/***/ (function(module, exports) {
+
+/**
+ * Parses an URI
+ *
+ * @author Steven Levithan <stevenlevithan.com> (MIT license)
+ * @api private
+ */
+
+var re = /^(?:(?![^:@]+:[^:@\/]*@)(http|https|ws|wss):\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?((?:[a-f0-9]{0,4}:){2,7}[a-f0-9]{0,4}|[^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
+
+var parts = [
+    'source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'
+];
+
+module.exports = function parseuri(str) {
+    var src = str,
+        b = str.indexOf('['),
+        e = str.indexOf(']');
+
+    if (b != -1 && e != -1) {
+        str = str.substring(0, b) + str.substring(b, e).replace(/:/g, ';') + str.substring(e, str.length);
+    }
+
+    var m = re.exec(str || ''),
+        uri = {},
+        i = 14;
+
+    while (i--) {
+        uri[parts[i]] = m[i] || '';
+    }
+
+    if (b != -1 && e != -1) {
+        uri.source = src;
+        uri.host = uri.host.substring(1, uri.host.length - 1).replace(/;/g, ':');
+        uri.authority = uri.authority.replace('[', '').replace(']', '').replace(/;/g, ':');
+        uri.ipv6uri = true;
+    }
+
+    return uri;
+};
+
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(global) {/* global Blob File */
+
+/*
+ * Module requirements.
+ */
+
+var isArray = __webpack_require__(14);
+
+var toString = Object.prototype.toString;
+var withNativeBlob = typeof global.Blob === 'function' || toString.call(global.Blob) === '[object BlobConstructor]';
+var withNativeFile = typeof global.File === 'function' || toString.call(global.File) === '[object FileConstructor]';
+
+/**
+ * Module exports.
+ */
+
+module.exports = hasBinary;
+
+/**
+ * Checks for binary data.
+ *
+ * Supports Buffer, ArrayBuffer, Blob and File.
+ *
+ * @param {Object} anything
+ * @api public
+ */
+
+function hasBinary (obj) {
+  if (!obj || typeof obj !== 'object') {
+    return false;
+  }
+
+  if (isArray(obj)) {
+    for (var i = 0, l = obj.length; i < l; i++) {
+      if (hasBinary(obj[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  if ((typeof global.Buffer === 'function' && global.Buffer.isBuffer && global.Buffer.isBuffer(obj)) ||
+     (typeof global.ArrayBuffer === 'function' && obj instanceof ArrayBuffer) ||
+     (withNativeBlob && obj instanceof Blob) ||
+     (withNativeFile && obj instanceof File)
+    ) {
+    return true;
+  }
+
+  // see: https://github.com/Automattic/has-binary/pull/4
+  if (obj.toJSON && typeof obj.toJSON === 'function' && arguments.length === 1) {
+    return hasBinary(obj.toJSON(), true);
+  }
+
+  for (var key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key) && hasBinary(obj[key])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 14 */
+/***/ (function(module, exports) {
+
+var toString = {}.toString;
+
+module.exports = Array.isArray || function (arr) {
+  return toString.call(arr) == '[object Array]';
+};
+
+
+/***/ }),
+/* 15 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(global) {
+module.exports = isBuf;
+
+/**
+ * Returns true if obj is a buffer or an arraybuffer.
+ *
+ * @api private
+ */
+
+function isBuf(obj) {
+  return (global.Buffer && global.Buffer.isBuffer(obj)) ||
+         (global.ArrayBuffer && obj instanceof ArrayBuffer);
+}
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
@@ -86298,9 +83867,2327 @@ src_app = function () {
  * Module dependencies.
  */
 
-var url = __webpack_require__(28);
-var parser = __webpack_require__(6);
-var Manager = __webpack_require__(15);
+var eio = __webpack_require__(34);
+var Socket = __webpack_require__(21);
+var Emitter = __webpack_require__(2);
+var parser = __webpack_require__(7);
+var on = __webpack_require__(22);
+var bind = __webpack_require__(23);
+var debug = __webpack_require__(1)('socket.io-client:manager');
+var indexOf = __webpack_require__(20);
+var Backoff = __webpack_require__(49);
+
+/**
+ * IE6+ hasOwnProperty
+ */
+
+var has = Object.prototype.hasOwnProperty;
+
+/**
+ * Module exports
+ */
+
+module.exports = Manager;
+
+/**
+ * `Manager` constructor.
+ *
+ * @param {String} engine instance or engine uri/opts
+ * @param {Object} options
+ * @api public
+ */
+
+function Manager (uri, opts) {
+  if (!(this instanceof Manager)) return new Manager(uri, opts);
+  if (uri && ('object' === typeof uri)) {
+    opts = uri;
+    uri = undefined;
+  }
+  opts = opts || {};
+
+  opts.path = opts.path || '/socket.io';
+  this.nsps = {};
+  this.subs = [];
+  this.opts = opts;
+  this.reconnection(opts.reconnection !== false);
+  this.reconnectionAttempts(opts.reconnectionAttempts || Infinity);
+  this.reconnectionDelay(opts.reconnectionDelay || 1000);
+  this.reconnectionDelayMax(opts.reconnectionDelayMax || 5000);
+  this.randomizationFactor(opts.randomizationFactor || 0.5);
+  this.backoff = new Backoff({
+    min: this.reconnectionDelay(),
+    max: this.reconnectionDelayMax(),
+    jitter: this.randomizationFactor()
+  });
+  this.timeout(null == opts.timeout ? 20000 : opts.timeout);
+  this.readyState = 'closed';
+  this.uri = uri;
+  this.connecting = [];
+  this.lastPing = null;
+  this.encoding = false;
+  this.packetBuffer = [];
+  var _parser = opts.parser || parser;
+  this.encoder = new _parser.Encoder();
+  this.decoder = new _parser.Decoder();
+  this.autoConnect = opts.autoConnect !== false;
+  if (this.autoConnect) this.open();
+}
+
+/**
+ * Propagate given event to sockets and emit on `this`
+ *
+ * @api private
+ */
+
+Manager.prototype.emitAll = function () {
+  this.emit.apply(this, arguments);
+  for (var nsp in this.nsps) {
+    if (has.call(this.nsps, nsp)) {
+      this.nsps[nsp].emit.apply(this.nsps[nsp], arguments);
+    }
+  }
+};
+
+/**
+ * Update `socket.id` of all sockets
+ *
+ * @api private
+ */
+
+Manager.prototype.updateSocketIds = function () {
+  for (var nsp in this.nsps) {
+    if (has.call(this.nsps, nsp)) {
+      this.nsps[nsp].id = this.generateId(nsp);
+    }
+  }
+};
+
+/**
+ * generate `socket.id` for the given `nsp`
+ *
+ * @param {String} nsp
+ * @return {String}
+ * @api private
+ */
+
+Manager.prototype.generateId = function (nsp) {
+  return (nsp === '/' ? '' : (nsp + '#')) + this.engine.id;
+};
+
+/**
+ * Mix in `Emitter`.
+ */
+
+Emitter(Manager.prototype);
+
+/**
+ * Sets the `reconnection` config.
+ *
+ * @param {Boolean} true/false if it should automatically reconnect
+ * @return {Manager} self or value
+ * @api public
+ */
+
+Manager.prototype.reconnection = function (v) {
+  if (!arguments.length) return this._reconnection;
+  this._reconnection = !!v;
+  return this;
+};
+
+/**
+ * Sets the reconnection attempts config.
+ *
+ * @param {Number} max reconnection attempts before giving up
+ * @return {Manager} self or value
+ * @api public
+ */
+
+Manager.prototype.reconnectionAttempts = function (v) {
+  if (!arguments.length) return this._reconnectionAttempts;
+  this._reconnectionAttempts = v;
+  return this;
+};
+
+/**
+ * Sets the delay between reconnections.
+ *
+ * @param {Number} delay
+ * @return {Manager} self or value
+ * @api public
+ */
+
+Manager.prototype.reconnectionDelay = function (v) {
+  if (!arguments.length) return this._reconnectionDelay;
+  this._reconnectionDelay = v;
+  this.backoff && this.backoff.setMin(v);
+  return this;
+};
+
+Manager.prototype.randomizationFactor = function (v) {
+  if (!arguments.length) return this._randomizationFactor;
+  this._randomizationFactor = v;
+  this.backoff && this.backoff.setJitter(v);
+  return this;
+};
+
+/**
+ * Sets the maximum delay between reconnections.
+ *
+ * @param {Number} delay
+ * @return {Manager} self or value
+ * @api public
+ */
+
+Manager.prototype.reconnectionDelayMax = function (v) {
+  if (!arguments.length) return this._reconnectionDelayMax;
+  this._reconnectionDelayMax = v;
+  this.backoff && this.backoff.setMax(v);
+  return this;
+};
+
+/**
+ * Sets the connection timeout. `false` to disable
+ *
+ * @return {Manager} self or value
+ * @api public
+ */
+
+Manager.prototype.timeout = function (v) {
+  if (!arguments.length) return this._timeout;
+  this._timeout = v;
+  return this;
+};
+
+/**
+ * Starts trying to reconnect if reconnection is enabled and we have not
+ * started reconnecting yet
+ *
+ * @api private
+ */
+
+Manager.prototype.maybeReconnectOnOpen = function () {
+  // Only try to reconnect if it's the first time we're connecting
+  if (!this.reconnecting && this._reconnection && this.backoff.attempts === 0) {
+    // keeps reconnection from firing twice for the same reconnection loop
+    this.reconnect();
+  }
+};
+
+/**
+ * Sets the current transport `socket`.
+ *
+ * @param {Function} optional, callback
+ * @return {Manager} self
+ * @api public
+ */
+
+Manager.prototype.open =
+Manager.prototype.connect = function (fn, opts) {
+  debug('readyState %s', this.readyState);
+  if (~this.readyState.indexOf('open')) return this;
+
+  debug('opening %s', this.uri);
+  this.engine = eio(this.uri, this.opts);
+  var socket = this.engine;
+  var self = this;
+  this.readyState = 'opening';
+  this.skipReconnect = false;
+
+  // emit `open`
+  var openSub = on(socket, 'open', function () {
+    self.onopen();
+    fn && fn();
+  });
+
+  // emit `connect_error`
+  var errorSub = on(socket, 'error', function (data) {
+    debug('connect_error');
+    self.cleanup();
+    self.readyState = 'closed';
+    self.emitAll('connect_error', data);
+    if (fn) {
+      var err = new Error('Connection error');
+      err.data = data;
+      fn(err);
+    } else {
+      // Only do this if there is no fn to handle the error
+      self.maybeReconnectOnOpen();
+    }
+  });
+
+  // emit `connect_timeout`
+  if (false !== this._timeout) {
+    var timeout = this._timeout;
+    debug('connect attempt will timeout after %d', timeout);
+
+    // set timer
+    var timer = setTimeout(function () {
+      debug('connect attempt timed out after %d', timeout);
+      openSub.destroy();
+      socket.close();
+      socket.emit('error', 'timeout');
+      self.emitAll('connect_timeout', timeout);
+    }, timeout);
+
+    this.subs.push({
+      destroy: function () {
+        clearTimeout(timer);
+      }
+    });
+  }
+
+  this.subs.push(openSub);
+  this.subs.push(errorSub);
+
+  return this;
+};
+
+/**
+ * Called upon transport open.
+ *
+ * @api private
+ */
+
+Manager.prototype.onopen = function () {
+  debug('open');
+
+  // clear old subs
+  this.cleanup();
+
+  // mark as open
+  this.readyState = 'open';
+  this.emit('open');
+
+  // add new subs
+  var socket = this.engine;
+  this.subs.push(on(socket, 'data', bind(this, 'ondata')));
+  this.subs.push(on(socket, 'ping', bind(this, 'onping')));
+  this.subs.push(on(socket, 'pong', bind(this, 'onpong')));
+  this.subs.push(on(socket, 'error', bind(this, 'onerror')));
+  this.subs.push(on(socket, 'close', bind(this, 'onclose')));
+  this.subs.push(on(this.decoder, 'decoded', bind(this, 'ondecoded')));
+};
+
+/**
+ * Called upon a ping.
+ *
+ * @api private
+ */
+
+Manager.prototype.onping = function () {
+  this.lastPing = new Date();
+  this.emitAll('ping');
+};
+
+/**
+ * Called upon a packet.
+ *
+ * @api private
+ */
+
+Manager.prototype.onpong = function () {
+  this.emitAll('pong', new Date() - this.lastPing);
+};
+
+/**
+ * Called with data.
+ *
+ * @api private
+ */
+
+Manager.prototype.ondata = function (data) {
+  this.decoder.add(data);
+};
+
+/**
+ * Called when parser fully decodes a packet.
+ *
+ * @api private
+ */
+
+Manager.prototype.ondecoded = function (packet) {
+  this.emit('packet', packet);
+};
+
+/**
+ * Called upon socket error.
+ *
+ * @api private
+ */
+
+Manager.prototype.onerror = function (err) {
+  debug('error', err);
+  this.emitAll('error', err);
+};
+
+/**
+ * Creates a new socket for the given `nsp`.
+ *
+ * @return {Socket}
+ * @api public
+ */
+
+Manager.prototype.socket = function (nsp, opts) {
+  var socket = this.nsps[nsp];
+  if (!socket) {
+    socket = new Socket(this, nsp, opts);
+    this.nsps[nsp] = socket;
+    var self = this;
+    socket.on('connecting', onConnecting);
+    socket.on('connect', function () {
+      socket.id = self.generateId(nsp);
+    });
+
+    if (this.autoConnect) {
+      // manually call here since connecting event is fired before listening
+      onConnecting();
+    }
+  }
+
+  function onConnecting () {
+    if (!~indexOf(self.connecting, socket)) {
+      self.connecting.push(socket);
+    }
+  }
+
+  return socket;
+};
+
+/**
+ * Called upon a socket close.
+ *
+ * @param {Socket} socket
+ */
+
+Manager.prototype.destroy = function (socket) {
+  var index = indexOf(this.connecting, socket);
+  if (~index) this.connecting.splice(index, 1);
+  if (this.connecting.length) return;
+
+  this.close();
+};
+
+/**
+ * Writes a packet.
+ *
+ * @param {Object} packet
+ * @api private
+ */
+
+Manager.prototype.packet = function (packet) {
+  debug('writing packet %j', packet);
+  var self = this;
+  if (packet.query && packet.type === 0) packet.nsp += '?' + packet.query;
+
+  if (!self.encoding) {
+    // encode, then write to engine with result
+    self.encoding = true;
+    this.encoder.encode(packet, function (encodedPackets) {
+      for (var i = 0; i < encodedPackets.length; i++) {
+        self.engine.write(encodedPackets[i], packet.options);
+      }
+      self.encoding = false;
+      self.processPacketQueue();
+    });
+  } else { // add packet to the queue
+    self.packetBuffer.push(packet);
+  }
+};
+
+/**
+ * If packet buffer is non-empty, begins encoding the
+ * next packet in line.
+ *
+ * @api private
+ */
+
+Manager.prototype.processPacketQueue = function () {
+  if (this.packetBuffer.length > 0 && !this.encoding) {
+    var pack = this.packetBuffer.shift();
+    this.packet(pack);
+  }
+};
+
+/**
+ * Clean up transport subscriptions and packet buffer.
+ *
+ * @api private
+ */
+
+Manager.prototype.cleanup = function () {
+  debug('cleanup');
+
+  var subsLength = this.subs.length;
+  for (var i = 0; i < subsLength; i++) {
+    var sub = this.subs.shift();
+    sub.destroy();
+  }
+
+  this.packetBuffer = [];
+  this.encoding = false;
+  this.lastPing = null;
+
+  this.decoder.destroy();
+};
+
+/**
+ * Close the current socket.
+ *
+ * @api private
+ */
+
+Manager.prototype.close =
+Manager.prototype.disconnect = function () {
+  debug('disconnect');
+  this.skipReconnect = true;
+  this.reconnecting = false;
+  if ('opening' === this.readyState) {
+    // `onclose` will not fire because
+    // an open event never happened
+    this.cleanup();
+  }
+  this.backoff.reset();
+  this.readyState = 'closed';
+  if (this.engine) this.engine.close();
+};
+
+/**
+ * Called upon engine close.
+ *
+ * @api private
+ */
+
+Manager.prototype.onclose = function (reason) {
+  debug('onclose');
+
+  this.cleanup();
+  this.backoff.reset();
+  this.readyState = 'closed';
+  this.emit('close', reason);
+
+  if (this._reconnection && !this.skipReconnect) {
+    this.reconnect();
+  }
+};
+
+/**
+ * Attempt a reconnection.
+ *
+ * @api private
+ */
+
+Manager.prototype.reconnect = function () {
+  if (this.reconnecting || this.skipReconnect) return this;
+
+  var self = this;
+
+  if (this.backoff.attempts >= this._reconnectionAttempts) {
+    debug('reconnect failed');
+    this.backoff.reset();
+    this.emitAll('reconnect_failed');
+    this.reconnecting = false;
+  } else {
+    var delay = this.backoff.duration();
+    debug('will wait %dms before reconnect attempt', delay);
+
+    this.reconnecting = true;
+    var timer = setTimeout(function () {
+      if (self.skipReconnect) return;
+
+      debug('attempting reconnect');
+      self.emitAll('reconnect_attempt', self.backoff.attempts);
+      self.emitAll('reconnecting', self.backoff.attempts);
+
+      // check again for the case socket closed in above events
+      if (self.skipReconnect) return;
+
+      self.open(function (err) {
+        if (err) {
+          debug('reconnect attempt error');
+          self.reconnecting = false;
+          self.reconnect();
+          self.emitAll('reconnect_error', err.data);
+        } else {
+          debug('reconnect success');
+          self.onreconnect();
+        }
+      });
+    }, delay);
+
+    this.subs.push({
+      destroy: function () {
+        clearTimeout(timer);
+      }
+    });
+  }
+};
+
+/**
+ * Called upon successful reconnect.
+ *
+ * @api private
+ */
+
+Manager.prototype.onreconnect = function () {
+  var attempt = this.backoff.attempts;
+  this.reconnecting = false;
+  this.backoff.reset();
+  this.updateSocketIds();
+  this.emitAll('reconnect', attempt);
+};
+
+
+/***/ }),
+/* 17 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(global) {/**
+ * Module dependencies
+ */
+
+var XMLHttpRequest = __webpack_require__(8);
+var XHR = __webpack_require__(37);
+var JSONP = __webpack_require__(45);
+var websocket = __webpack_require__(46);
+
+/**
+ * Export transports.
+ */
+
+exports.polling = polling;
+exports.websocket = websocket;
+
+/**
+ * Polling transport polymorphic constructor.
+ * Decides on xhr vs jsonp based on feature detection.
+ *
+ * @api private
+ */
+
+function polling (opts) {
+  var xhr;
+  var xd = false;
+  var xs = false;
+  var jsonp = false !== opts.jsonp;
+
+  if (global.location) {
+    var isSSL = 'https:' === location.protocol;
+    var port = location.port;
+
+    // some user agents have empty `location.port`
+    if (!port) {
+      port = isSSL ? 443 : 80;
+    }
+
+    xd = opts.hostname !== location.hostname || port !== opts.port;
+    xs = opts.secure !== isSSL;
+  }
+
+  opts.xdomain = xd;
+  opts.xscheme = xs;
+  xhr = new XMLHttpRequest(opts);
+
+  if ('open' in xhr && !opts.forceJSONP) {
+    return new XHR(opts);
+  } else {
+    if (!jsonp) throw new Error('JSONP disabled');
+    return new JSONP(opts);
+  }
+}
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 18 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/**
+ * Module dependencies.
+ */
+
+var Transport = __webpack_require__(9);
+var parseqs = __webpack_require__(4);
+var parser = __webpack_require__(3);
+var inherit = __webpack_require__(5);
+var yeast = __webpack_require__(19);
+var debug = __webpack_require__(1)('engine.io-client:polling');
+
+/**
+ * Module exports.
+ */
+
+module.exports = Polling;
+
+/**
+ * Is XHR2 supported?
+ */
+
+var hasXHR2 = (function () {
+  var XMLHttpRequest = __webpack_require__(8);
+  var xhr = new XMLHttpRequest({ xdomain: false });
+  return null != xhr.responseType;
+})();
+
+/**
+ * Polling interface.
+ *
+ * @param {Object} opts
+ * @api private
+ */
+
+function Polling (opts) {
+  var forceBase64 = (opts && opts.forceBase64);
+  if (!hasXHR2 || forceBase64) {
+    this.supportsBinary = false;
+  }
+  Transport.call(this, opts);
+}
+
+/**
+ * Inherits from Transport.
+ */
+
+inherit(Polling, Transport);
+
+/**
+ * Transport name.
+ */
+
+Polling.prototype.name = 'polling';
+
+/**
+ * Opens the socket (triggers polling). We write a PING message to determine
+ * when the transport is open.
+ *
+ * @api private
+ */
+
+Polling.prototype.doOpen = function () {
+  this.poll();
+};
+
+/**
+ * Pauses polling.
+ *
+ * @param {Function} callback upon buffers are flushed and transport is paused
+ * @api private
+ */
+
+Polling.prototype.pause = function (onPause) {
+  var self = this;
+
+  this.readyState = 'pausing';
+
+  function pause () {
+    debug('paused');
+    self.readyState = 'paused';
+    onPause();
+  }
+
+  if (this.polling || !this.writable) {
+    var total = 0;
+
+    if (this.polling) {
+      debug('we are currently polling - waiting to pause');
+      total++;
+      this.once('pollComplete', function () {
+        debug('pre-pause polling complete');
+        --total || pause();
+      });
+    }
+
+    if (!this.writable) {
+      debug('we are currently writing - waiting to pause');
+      total++;
+      this.once('drain', function () {
+        debug('pre-pause writing complete');
+        --total || pause();
+      });
+    }
+  } else {
+    pause();
+  }
+};
+
+/**
+ * Starts polling cycle.
+ *
+ * @api public
+ */
+
+Polling.prototype.poll = function () {
+  debug('polling');
+  this.polling = true;
+  this.doPoll();
+  this.emit('poll');
+};
+
+/**
+ * Overloads onData to detect payloads.
+ *
+ * @api private
+ */
+
+Polling.prototype.onData = function (data) {
+  var self = this;
+  debug('polling got data %s', data);
+  var callback = function (packet, index, total) {
+    // if its the first message we consider the transport open
+    if ('opening' === self.readyState) {
+      self.onOpen();
+    }
+
+    // if its a close packet, we close the ongoing requests
+    if ('close' === packet.type) {
+      self.onClose();
+      return false;
+    }
+
+    // otherwise bypass onData and handle the message
+    self.onPacket(packet);
+  };
+
+  // decode payload
+  parser.decodePayload(data, this.socket.binaryType, callback);
+
+  // if an event did not trigger closing
+  if ('closed' !== this.readyState) {
+    // if we got data we're not polling
+    this.polling = false;
+    this.emit('pollComplete');
+
+    if ('open' === this.readyState) {
+      this.poll();
+    } else {
+      debug('ignoring poll - transport state "%s"', this.readyState);
+    }
+  }
+};
+
+/**
+ * For polling, send a close packet.
+ *
+ * @api private
+ */
+
+Polling.prototype.doClose = function () {
+  var self = this;
+
+  function close () {
+    debug('writing close packet');
+    self.write([{ type: 'close' }]);
+  }
+
+  if ('open' === this.readyState) {
+    debug('transport open - closing');
+    close();
+  } else {
+    // in case we're trying to close while
+    // handshaking is in progress (GH-164)
+    debug('transport not open - deferring close');
+    this.once('open', close);
+  }
+};
+
+/**
+ * Writes a packets payload.
+ *
+ * @param {Array} data packets
+ * @param {Function} drain callback
+ * @api private
+ */
+
+Polling.prototype.write = function (packets) {
+  var self = this;
+  this.writable = false;
+  var callbackfn = function () {
+    self.writable = true;
+    self.emit('drain');
+  };
+
+  parser.encodePayload(packets, this.supportsBinary, function (data) {
+    self.doWrite(data, callbackfn);
+  });
+};
+
+/**
+ * Generates uri for connection.
+ *
+ * @api private
+ */
+
+Polling.prototype.uri = function () {
+  var query = this.query || {};
+  var schema = this.secure ? 'https' : 'http';
+  var port = '';
+
+  // cache busting is forced
+  if (false !== this.timestampRequests) {
+    query[this.timestampParam] = yeast();
+  }
+
+  if (!this.supportsBinary && !query.sid) {
+    query.b64 = 1;
+  }
+
+  query = parseqs.encode(query);
+
+  // avoid port if default for schema
+  if (this.port && (('https' === schema && Number(this.port) !== 443) ||
+     ('http' === schema && Number(this.port) !== 80))) {
+    port = ':' + this.port;
+  }
+
+  // prepend ? to query
+  if (query.length) {
+    query = '?' + query;
+  }
+
+  var ipv6 = this.hostname.indexOf(':') !== -1;
+  return schema + '://' + (ipv6 ? '[' + this.hostname + ']' : this.hostname) + port + this.path + query;
+};
+
+
+/***/ }),
+/* 19 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split('')
+  , length = 64
+  , map = {}
+  , seed = 0
+  , i = 0
+  , prev;
+
+/**
+ * Return a string representing the specified number.
+ *
+ * @param {Number} num The number to convert.
+ * @returns {String} The string representation of the number.
+ * @api public
+ */
+function encode(num) {
+  var encoded = '';
+
+  do {
+    encoded = alphabet[num % length] + encoded;
+    num = Math.floor(num / length);
+  } while (num > 0);
+
+  return encoded;
+}
+
+/**
+ * Return the integer value specified by the given string.
+ *
+ * @param {String} str The string to convert.
+ * @returns {Number} The integer value represented by the string.
+ * @api public
+ */
+function decode(str) {
+  var decoded = 0;
+
+  for (i = 0; i < str.length; i++) {
+    decoded = decoded * length + map[str.charAt(i)];
+  }
+
+  return decoded;
+}
+
+/**
+ * Yeast: A tiny growing id generator.
+ *
+ * @returns {String} A unique id.
+ * @api public
+ */
+function yeast() {
+  var now = encode(+new Date());
+
+  if (now !== prev) return seed = 0, prev = now;
+  return now +'.'+ encode(seed++);
+}
+
+//
+// Map each character to its index.
+//
+for (; i < length; i++) map[alphabet[i]] = i;
+
+//
+// Expose the `yeast`, `encode` and `decode` functions.
+//
+yeast.encode = encode;
+yeast.decode = decode;
+module.exports = yeast;
+
+
+/***/ }),
+/* 20 */
+/***/ (function(module, exports) {
+
+
+var indexOf = [].indexOf;
+
+module.exports = function(arr, obj){
+  if (indexOf) return arr.indexOf(obj);
+  for (var i = 0; i < arr.length; ++i) {
+    if (arr[i] === obj) return i;
+  }
+  return -1;
+};
+
+/***/ }),
+/* 21 */
+/***/ (function(module, exports, __webpack_require__) {
+
+
+/**
+ * Module dependencies.
+ */
+
+var parser = __webpack_require__(7);
+var Emitter = __webpack_require__(2);
+var toArray = __webpack_require__(48);
+var on = __webpack_require__(22);
+var bind = __webpack_require__(23);
+var debug = __webpack_require__(1)('socket.io-client:socket');
+var parseqs = __webpack_require__(4);
+
+/**
+ * Module exports.
+ */
+
+module.exports = exports = Socket;
+
+/**
+ * Internal events (blacklisted).
+ * These events can't be emitted by the user.
+ *
+ * @api private
+ */
+
+var events = {
+  connect: 1,
+  connect_error: 1,
+  connect_timeout: 1,
+  connecting: 1,
+  disconnect: 1,
+  error: 1,
+  reconnect: 1,
+  reconnect_attempt: 1,
+  reconnect_failed: 1,
+  reconnect_error: 1,
+  reconnecting: 1,
+  ping: 1,
+  pong: 1
+};
+
+/**
+ * Shortcut to `Emitter#emit`.
+ */
+
+var emit = Emitter.prototype.emit;
+
+/**
+ * `Socket` constructor.
+ *
+ * @api public
+ */
+
+function Socket (io, nsp, opts) {
+  this.io = io;
+  this.nsp = nsp;
+  this.json = this; // compat
+  this.ids = 0;
+  this.acks = {};
+  this.receiveBuffer = [];
+  this.sendBuffer = [];
+  this.connected = false;
+  this.disconnected = true;
+  if (opts && opts.query) {
+    this.query = opts.query;
+  }
+  if (this.io.autoConnect) this.open();
+}
+
+/**
+ * Mix in `Emitter`.
+ */
+
+Emitter(Socket.prototype);
+
+/**
+ * Subscribe to open, close and packet events
+ *
+ * @api private
+ */
+
+Socket.prototype.subEvents = function () {
+  if (this.subs) return;
+
+  var io = this.io;
+  this.subs = [
+    on(io, 'open', bind(this, 'onopen')),
+    on(io, 'packet', bind(this, 'onpacket')),
+    on(io, 'close', bind(this, 'onclose'))
+  ];
+};
+
+/**
+ * "Opens" the socket.
+ *
+ * @api public
+ */
+
+Socket.prototype.open =
+Socket.prototype.connect = function () {
+  if (this.connected) return this;
+
+  this.subEvents();
+  this.io.open(); // ensure open
+  if ('open' === this.io.readyState) this.onopen();
+  this.emit('connecting');
+  return this;
+};
+
+/**
+ * Sends a `message` event.
+ *
+ * @return {Socket} self
+ * @api public
+ */
+
+Socket.prototype.send = function () {
+  var args = toArray(arguments);
+  args.unshift('message');
+  this.emit.apply(this, args);
+  return this;
+};
+
+/**
+ * Override `emit`.
+ * If the event is in `events`, it's emitted normally.
+ *
+ * @param {String} event name
+ * @return {Socket} self
+ * @api public
+ */
+
+Socket.prototype.emit = function (ev) {
+  if (events.hasOwnProperty(ev)) {
+    emit.apply(this, arguments);
+    return this;
+  }
+
+  var args = toArray(arguments);
+  var packet = { type: parser.EVENT, data: args };
+
+  packet.options = {};
+  packet.options.compress = !this.flags || false !== this.flags.compress;
+
+  // event ack callback
+  if ('function' === typeof args[args.length - 1]) {
+    debug('emitting packet with ack id %d', this.ids);
+    this.acks[this.ids] = args.pop();
+    packet.id = this.ids++;
+  }
+
+  if (this.connected) {
+    this.packet(packet);
+  } else {
+    this.sendBuffer.push(packet);
+  }
+
+  delete this.flags;
+
+  return this;
+};
+
+/**
+ * Sends a packet.
+ *
+ * @param {Object} packet
+ * @api private
+ */
+
+Socket.prototype.packet = function (packet) {
+  packet.nsp = this.nsp;
+  this.io.packet(packet);
+};
+
+/**
+ * Called upon engine `open`.
+ *
+ * @api private
+ */
+
+Socket.prototype.onopen = function () {
+  debug('transport is open - connecting');
+
+  // write connect packet if necessary
+  if ('/' !== this.nsp) {
+    if (this.query) {
+      var query = typeof this.query === 'object' ? parseqs.encode(this.query) : this.query;
+      debug('sending connect packet with query %s', query);
+      this.packet({type: parser.CONNECT, query: query});
+    } else {
+      this.packet({type: parser.CONNECT});
+    }
+  }
+};
+
+/**
+ * Called upon engine `close`.
+ *
+ * @param {String} reason
+ * @api private
+ */
+
+Socket.prototype.onclose = function (reason) {
+  debug('close (%s)', reason);
+  this.connected = false;
+  this.disconnected = true;
+  delete this.id;
+  this.emit('disconnect', reason);
+};
+
+/**
+ * Called with socket packet.
+ *
+ * @param {Object} packet
+ * @api private
+ */
+
+Socket.prototype.onpacket = function (packet) {
+  if (packet.nsp !== this.nsp) return;
+
+  switch (packet.type) {
+    case parser.CONNECT:
+      this.onconnect();
+      break;
+
+    case parser.EVENT:
+      this.onevent(packet);
+      break;
+
+    case parser.BINARY_EVENT:
+      this.onevent(packet);
+      break;
+
+    case parser.ACK:
+      this.onack(packet);
+      break;
+
+    case parser.BINARY_ACK:
+      this.onack(packet);
+      break;
+
+    case parser.DISCONNECT:
+      this.ondisconnect();
+      break;
+
+    case parser.ERROR:
+      this.emit('error', packet.data);
+      break;
+  }
+};
+
+/**
+ * Called upon a server event.
+ *
+ * @param {Object} packet
+ * @api private
+ */
+
+Socket.prototype.onevent = function (packet) {
+  var args = packet.data || [];
+  debug('emitting event %j', args);
+
+  if (null != packet.id) {
+    debug('attaching ack callback to event');
+    args.push(this.ack(packet.id));
+  }
+
+  if (this.connected) {
+    emit.apply(this, args);
+  } else {
+    this.receiveBuffer.push(args);
+  }
+};
+
+/**
+ * Produces an ack callback to emit with an event.
+ *
+ * @api private
+ */
+
+Socket.prototype.ack = function (id) {
+  var self = this;
+  var sent = false;
+  return function () {
+    // prevent double callbacks
+    if (sent) return;
+    sent = true;
+    var args = toArray(arguments);
+    debug('sending ack %j', args);
+
+    self.packet({
+      type: parser.ACK,
+      id: id,
+      data: args
+    });
+  };
+};
+
+/**
+ * Called upon a server acknowlegement.
+ *
+ * @param {Object} packet
+ * @api private
+ */
+
+Socket.prototype.onack = function (packet) {
+  var ack = this.acks[packet.id];
+  if ('function' === typeof ack) {
+    debug('calling ack %s with %j', packet.id, packet.data);
+    ack.apply(this, packet.data);
+    delete this.acks[packet.id];
+  } else {
+    debug('bad ack %s', packet.id);
+  }
+};
+
+/**
+ * Called upon server connect.
+ *
+ * @api private
+ */
+
+Socket.prototype.onconnect = function () {
+  this.connected = true;
+  this.disconnected = false;
+  this.emit('connect');
+  this.emitBuffered();
+};
+
+/**
+ * Emit buffered events (received and emitted).
+ *
+ * @api private
+ */
+
+Socket.prototype.emitBuffered = function () {
+  var i;
+  for (i = 0; i < this.receiveBuffer.length; i++) {
+    emit.apply(this, this.receiveBuffer[i]);
+  }
+  this.receiveBuffer = [];
+
+  for (i = 0; i < this.sendBuffer.length; i++) {
+    this.packet(this.sendBuffer[i]);
+  }
+  this.sendBuffer = [];
+};
+
+/**
+ * Called upon server disconnect.
+ *
+ * @api private
+ */
+
+Socket.prototype.ondisconnect = function () {
+  debug('server disconnect (%s)', this.nsp);
+  this.destroy();
+  this.onclose('io server disconnect');
+};
+
+/**
+ * Called upon forced client/server side disconnections,
+ * this method ensures the manager stops tracking us and
+ * that reconnections don't get triggered for this.
+ *
+ * @api private.
+ */
+
+Socket.prototype.destroy = function () {
+  if (this.subs) {
+    // clean subscriptions to avoid reconnections
+    for (var i = 0; i < this.subs.length; i++) {
+      this.subs[i].destroy();
+    }
+    this.subs = null;
+  }
+
+  this.io.destroy(this);
+};
+
+/**
+ * Disconnects the socket manually.
+ *
+ * @return {Socket} self
+ * @api public
+ */
+
+Socket.prototype.close =
+Socket.prototype.disconnect = function () {
+  if (this.connected) {
+    debug('performing disconnect (%s)', this.nsp);
+    this.packet({ type: parser.DISCONNECT });
+  }
+
+  // remove socket from pool
+  this.destroy();
+
+  if (this.connected) {
+    // fire events
+    this.onclose('io client disconnect');
+  }
+  return this;
+};
+
+/**
+ * Sets the compress flag.
+ *
+ * @param {Boolean} if `true`, compresses the sending data
+ * @return {Socket} self
+ * @api public
+ */
+
+Socket.prototype.compress = function (compress) {
+  this.flags = this.flags || {};
+  this.flags.compress = compress;
+  return this;
+};
+
+
+/***/ }),
+/* 22 */
+/***/ (function(module, exports) {
+
+
+/**
+ * Module exports.
+ */
+
+module.exports = on;
+
+/**
+ * Helper for subscriptions.
+ *
+ * @param {Object|EventEmitter} obj with `Emitter` mixin or `EventEmitter`
+ * @param {String} event name
+ * @param {Function} callback
+ * @api public
+ */
+
+function on (obj, ev, fn) {
+  obj.on(ev, fn);
+  return {
+    destroy: function () {
+      obj.removeListener(ev, fn);
+    }
+  };
+}
+
+
+/***/ }),
+/* 23 */
+/***/ (function(module, exports) {
+
+/**
+ * Slice reference.
+ */
+
+var slice = [].slice;
+
+/**
+ * Bind `obj` to `fn`.
+ *
+ * @param {Object} obj
+ * @param {Function|String} fn or string
+ * @return {Function}
+ * @api public
+ */
+
+module.exports = function(obj, fn){
+  if ('string' == typeof fn) fn = obj[fn];
+  if ('function' != typeof fn) throw new Error('bind() requires a function');
+  var args = slice.call(arguments, 2);
+  return function(){
+    return fn.apply(obj, args.concat(slice.call(arguments)));
+  }
+};
+
+
+/***/ }),
+/* 24 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_socket_io_client__ = __webpack_require__(28);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_socket_io_client___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_socket_io_client__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__main_scss__ = __webpack_require__(25);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__main_scss___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__main_scss__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__sketch__ = __webpack_require__(26);
+
+
+
+
+var CONFIG = __webpack_require__(11)
+
+var FastClick = __webpack_require__(50);						// remove the 300ms delay between touches
+FastClick.attach(document.body);
+
+var socket = __WEBPACK_IMPORTED_MODULE_0_socket_io_client___default()()
+
+var index = 0,
+	total = 0,
+	voice = 0,
+	active = false
+
+var button = document.getElementById('enter')
+
+
+/**
+ * Initalize page on first request and also on refresh
+ *
+ */
+
+Object(__WEBPACK_IMPORTED_MODULE_2__sketch__["a" /* sketch */])(socket, callbackFromSketch)
+
+
+socket.on('connect', function() {
+
+	if(CONFIG.DEBUG) {
+		console.log('(Re)Connected to server')
+	}
+
+})
+
+socket.on('disconnect', function() {
+
+	if(CONFIG.DEBUG) {
+		console.log('Disconnected from server (shutdown sounds if any)')
+	}
+
+	__WEBPACK_IMPORTED_MODULE_2__sketch__["b" /* sketchAudio */].stop()
+})
+
+socket.on("boot", function(user) {
+	if(CONFIG.DEBUG) {
+		console.log('Boot: ', user)
+	}
+
+	index = user.index
+	total = user.index
+	voice = user.voice
+	active = false
+
+
+
+	// clear default classes
+	
+	document.body.className = ''
+
+
+	// load the sketch with data
+
+	window.loadSketch(user)
+
+
+	// update document style
+	
+	document.body.classList.add('is-voice-' + voice)
+
+
+	// bind default click event to button
+
+	// clear events (re-connections bind the same event twice!)
+	//button = document.getElementById('enter')
+	button.removeEventListener('click', joinEvent)
+	button.removeEventListener('click', resumeEvent)
+	button.addEventListener('click', loadEvent)
+
+
+	// bind default click to header
+
+	document.getElementById('back').addEventListener('click', backEvent)
+
+
+	// add orientation event for pausing/starting audio when already singing
+
+	orientationEvents()
+
+	
+	// update label (default text)
+
+	updateButtonLabel('loading')
+
+
+	// Update the user interface
+
+	updateCounterLabel()
+})
+
+/**
+ * Update the index
+ *
+ */
+
+
+socket.on("index", function(i) {
+	index = i
+
+	updateCounterLabel()
+})
+
+
+/**
+ * Update the total
+ *
+ */
+
+
+socket.on("total", function(i) {
+	total = i
+
+	updateCounterLabel()
+})
+
+
+
+function callbackFromSketch(){
+	// update document style
+
+	document.body.classList.add('is-ready')
+
+
+	// bind new click event to button
+
+	button.removeEventListener('click', loadEvent)
+
+
+	// callback to server (retrieve current playheads (?))
+
+	socket.emit('ready')
+
+
+	// update the label
+
+	updateButtonLabel('join the<br/>choir')									// button text when loading is complete
+
+
+	// add new click event to join the choir
+
+	button.addEventListener('click', joinEvent)
+}
+
+var loadEvent = function(e){
+	e.preventDefault()
+
+	if(CONFIG.ENV == 'dev'){
+		console.log("Click on Loading")
+	}
+}
+
+var joinEvent = function(e){
+	startSketch(e, function(){
+		if(CONFIG.ENV == 'dev'){
+			console.log("Joined the choir")
+		}
+
+		// immediatly remove this click event so that it can't be triggered twice
+
+		button.removeEventListener('click', joinEvent)
+
+
+		// notify server
+		
+		socket.emit('joined')
+
+		// add the new click event
+
+		button.addEventListener('click', resumeEvent)
+
+
+		// update the label
+
+		updateButtonLabel('resume')
+	})
+
+}
+
+var resumeEvent = function(e){
+	startSketch(e, function(){
+		if(CONFIG.ENV == 'dev'){
+			console.log("Resumed the choir")
+		}
+
+		// notify server
+
+		socket.emit('resume')
+	})
+}
+
+var backEvent = function(e){
+	e.preventDefault()
+
+	if(CONFIG.ENV == 'dev'){
+		console.log("Left the choir")
+	}
+
+
+	// update document style
+
+	document.body.classList.remove('is-soundbox')
+
+	// set active to false for orientation event
+
+	active = false										
+
+
+	// notify server
+
+	socket.emit("left")
+
+
+	// Stop the audio from playing
+
+	__WEBPACK_IMPORTED_MODULE_2__sketch__["b" /* sketchAudio */].pause()
+} 
+
+function startSketch(e, fn){
+	e.preventDefault()
+
+	// update document style
+
+	document.body.classList.add('is-soundbox')
+
+	// set active to true for orientation event
+
+	active = true
+
+	if(fn && typeof(fn) === "function") {
+		fn()
+	}
+
+	// the sketch is by default paused to prevent sound from home
+	// and start the audio files from the beginning
+
+	__WEBPACK_IMPORTED_MODULE_2__sketch__["b" /* sketchAudio */].start()
+
+	// updateCounterLabel()	
+}
+
+function orientationEvents() {
+	var screenOrientation = getOrientation()
+
+	window.onresize = function(event) {
+		 var _screenOrientation = getOrientation()
+
+		 if(screenOrientation != _screenOrientation) {
+
+		 	if(screenOrientation == 0) {														// landscape
+
+		 		if(CONFIG.ENV == 'dev') {
+		 			console.log("Orientation: landscape")
+		 		}
+
+		 		if(active) {
+		 			__WEBPACK_IMPORTED_MODULE_2__sketch__["b" /* sketchAudio */].pause()
+		 		}
+
+		 	}else if(screenOrientation == 90) {													// portrait
+		 		if(CONFIG.ENV == 'dev') {
+		 			console.log("Orientation: portrait")
+		 		}
+
+		 		if(active) {
+		 			__WEBPACK_IMPORTED_MODULE_2__sketch__["b" /* sketchAudio */].start()
+		 		}
+		 	}
+		 }
+
+		 screenOrientation = _screenOrientation
+	}
+
+	function getOrientation() {
+		return window.innerWidth > window.innerHeight? 90 : 0
+	}
+}
+
+function updateButtonLabel(str) {
+	document.getElementById('svg_label').innerHTML = str
+}
+
+function updateCounterLabel() {
+	document.getElementById('index').innerHTML = index
+	document.getElementById('total').innerHTML = total
+}
+
+/***/ }),
+/* 25 */
+/***/ (function(module, exports) {
+
+// removed by extract-text-webpack-plugin
+
+/***/ }),
+/* 26 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return sketch; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return sketchAudio; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_p5__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_p5___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_p5__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_p5_lib_addons_p5_sound__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_p5_lib_addons_p5_sound___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_p5_lib_addons_p5_sound__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__sketch_util_js__ = __webpack_require__(56);
+
+
+
+const CONFIG = __webpack_require__(11)
+
+
+
+var voice = 0
+var pause = true
+var circles = []
+
+var myFont = 'Helvetica'
+var fontSize = 36
+
+var sketch = function(socket, callback){
+	window.preload = function() {
+		soundFormats('mp3')
+	}
+
+	window.windowResized = function() {
+		var dim = Object(__WEBPACK_IMPORTED_MODULE_2__sketch_util_js__["a" /* getCanvasDimensions */])()
+	  	resizeCanvas(dim.w, dim.h)
+	}
+
+	window.setup = function() {
+		var dim = Object(__WEBPACK_IMPORTED_MODULE_2__sketch_util_js__["a" /* getCanvasDimensions */])()
+		createCanvas(dim.w, dim.h)
+
+
+		/*
+		socket.on("bang", function(v){
+			//console.log('- bang received', v)
+
+			// pick a circle
+			var index = int(random(circles.length))
+			var circle = circles[index]
+
+			// and tell it to sing a fragment on the next roundabout
+			circle.doFragment()
+		})
+		*/
+
+		// reset default mouse positions
+
+		mouseX = -1
+		mouseY = -1
+	}
+
+
+	/**
+	 * This function is always called whenever the connection is (re)-connected
+	 *
+	 * This is true for the following tested browsers: Firefox, Chrome, Safari
+	 *
+	 */
+
+	window.loadSketch = function(user){
+  		myFont = loadFont('/font/naturamedium-regular-webfont.ttf')
+
+  		textFont(myFont);
+		textSize(fontSize)
+
+		voice = user.voice
+
+		circles = []													// reset the circles
+
+		circles.push( new Circle(1, 200, 0.05) )						// 1
+		circles.push( new Circle(2, 200, 0.1) )							// 2
+		circles.push( new Circle(3, 250, 0.005) )						// 3
+		circles.push( new Circle(4, 150, 0.2) )							// 4
+
+		circles.forEach(function(circle, i) {
+			var src = '/sound/' + voice + '-' + i +'.mp3'
+			var cueSrc = '/cues/' + voice + '-' + i +'.txt'
+
+			loadCircle(src, cueSrc)
+
+			function loadCircle(src, cueSrc){
+				loadSound(src, function(sound) {					// async
+
+					if(CONFIG.DEBUG) {
+						console.log("Sound loaded: " + src)
+					}
+
+					circle.setSound(sound)
+
+					loadStrings(cueSrc, function(data){
+						
+						if(CONFIG.DEBUG) {
+							console.log("Cue loaded: " + cueSrc)
+						}
+
+						circle.setCues(data)
+
+						if(allLoaded(circles)) {
+							if(CONFIG.DEBUG) {
+								console.log("All loaded")
+							}
+
+							// when ALL is loaded, make the front-end button active!
+
+							callback()
+						}
+					})
+				}, function(){
+					
+					if(CONFIG.DEBUG) {
+						console.log('error while loading: ' + src )
+						console.log('reloading ' + src)
+					}
+
+					loadCircle(src, cueSrc)
+				})
+			}
+		})	
+
+	}
+
+	window.draw = function() {
+		// Capture the position of the mouse (or touch)
+
+		var x = mouseX
+		var y = mouseY
+
+		background(0)
+		noCursor()
+
+		if(!pause) {
+			circles.forEach(function(c) {
+				c.update(x, y)
+			})
+		}
+
+		drawCircles(circles)
+
+		drawText()
+
+		if(pause) {
+			muteCircles(true)	
+			return false
+		}
+
+		if(Object(__WEBPACK_IMPORTED_MODULE_2__sketch_util_js__["b" /* onCanvas */])(x,y)) {
+			drawSpider(circles, x, y)
+			drawCenter(x, y)
+
+			if(arePlayingSolo(circles)) {
+
+				circles.forEach(function(c) {
+					if(c.inside){
+						c.setMute(false)
+					} else {
+						c.setMute(true)
+					}
+				})
+
+			}else{
+				muteCircles(false)
+			}
+
+		}else{
+			muteCircles(true)
+		}
+	}
+
+	function arePlayingSolo(circles) {
+		var flag = false
+
+		circles.forEach(function(c) {
+			if(c.inside) {
+				flag = true
+			}
+		})
+
+		return flag
+	}
+
+	function muteCircles(b) {
+		circles.forEach(function(c) {
+			c.setMute(b)
+		})
+	}
+
+	function drawText() {
+		var padding = 10
+
+		var top = 30 + padding/2
+		var bottom = height + 10 - padding * 2
+		
+		var left = padding
+		var right = width - padding
+
+		fill(getColor())
+		strokeWeight(0)
+
+		textAlign(LEFT)
+		text(1, left, top)
+		text(3, left, bottom)
+
+		textAlign(RIGHT)
+		text(2, right, top)
+		text(4, right, bottom)
+	}
+
+	function drawCircles(circles) {
+		var steps = 10
+		var stepX = width/steps
+		var stepY = height/steps
+
+		stroke(getColor())
+		noFill()
+		strokeWeight(1)
+
+		rect(0, 0, width - 1, height - 2)
+		
+		if(circles.length > 0){
+			circles[0].draw(stepX * 3, stepY * 2)
+			circles[1].draw(stepX * 7, stepY * 3)
+			circles[2].draw(stepX * 3, stepY * 6)
+			circles[3].draw(stepX * 7, stepY * 7)
+		}
+	}
+
+	function drawCenter(x, y) {
+		fill(255, 50)
+		fill(getColor())
+		noStroke()
+		ellipse(x, y, 5, 5)
+	}
+
+	function drawSpider(circles, x, y) {
+		stroke(255, 100)
+		strokeWeight(1)
+
+		circles.forEach(function(circle) {
+			var rad = circle.getScaledRad()
+
+			var center = createVector(circle.x, circle.y)									// center of circle
+			var playhead = createVector(circle.x + circle.timeX, circle.y + circle.timeY)		// moving playhead point
+
+			// mouse to playhead position on the circle
+			var mouse = createVector(x, y)
+			mouse.sub(playhead)
+
+			// get distance from to center
+			var d = dist(x, y, circle.x, circle.y)
+			d = constrain(d, 0, rad)
+			d = map(d, 0, rad, 10, 0)
+
+			var vol = map(d, 10, 0, 1, 0)
+			var opacity = map(vol, 0, 1, 100, 255)
+
+			// get distance to outerCircle
+			var dOuterCircle = dist(x, y, circle.x, circle.y)
+			dOuterCircle -= rad
+
+			var volOuterCircle = constrain(map(dOuterCircle, 0, 30, 1, 0), 0, 1)
+			var opacityOuterCircle = map(volOuterCircle, 0, 1, 0, 255)
+
+			// update sound
+
+			var volume = volOuterCircle
+
+			if(circle.inside){
+				volume = 1
+			}
+
+			// set volume to circle
+			circle.setVolume(volume)
+
+			// display
+			stroke(getColor(opacityOuterCircle))
+
+			if(!arePlayingSolo(circles)){
+				draw()
+			}else{
+				if(circle.inside){
+					draw()
+				}
+			}
+
+			function draw(){
+				if(circle.silence){
+					stroke(getColorDimmed(opacityOuterCircle))
+					return false
+				}
+
+				push()
+				translate(playhead.x, playhead.y)
+				line(0, 0, mouse.x, mouse.y)
+				pop()
+			}
+		})
+	}
+
+	function Circle(id, rad, acc) {	
+		this.id = id
+		this.rad = rad
+		this.acc = acc
+
+		this.rot = 0
+
+		this.x = 0
+		this.y = 0
+
+		this.timeX = 0
+		this.timeY = 0
+
+		this.sound = null
+		
+		this.volume = 0
+		this.mute = true
+		this.silence = true
+
+		this.playFragment = false
+
+		this.inside = false
+
+		this.scaledRad = rad * Object(__WEBPACK_IMPORTED_MODULE_2__sketch_util_js__["c" /* scalePercent */])()
+
+		this.soundLoaded = false
+		this.cuesLoaded = false
+	  
+		this.update = function(x, y) {
+			this.rot += this.acc
+			this.scaledRad = this.rad * Object(__WEBPACK_IMPORTED_MODULE_2__sketch_util_js__["c" /* scalePercent */])()
+
+			// Inside circle?
+			this.inside = this.isInside(x, y)
+
+			// Muted?
+			if(this.isLoaded()) {
+				if(this.mute) {
+					this.sound.setVolume(0)
+				}else{
+					this.sound.setVolume(this.volume)
+				}
+			}
+		}
+
+		this.setSound = function(_sound) {			
+			this.sound = _sound
+			this.soundLoaded = true
+
+			/*
+			 * IMPORTANT
+			 *
+			 *  this function is also called when you start from the beginning!
+			 *
+			 *
+			 */
+			
+			this.sound.onended(() => {
+				if(pause){
+					return false
+				}
+
+				//console.log('Circle #' + this.id + ' ended')
+
+				this.play()
+			})
+		}
+
+		this.setCues = function(data){
+			// this function presumes that the sound is already loaded
+			var _this = this
+	
+			data.forEach(function(line){
+				var parts = split(line, '\t')
+				var time = parseFloat(parts[0])
+				var val = parts[1]
+				
+				_this.sound.addCue(time, _this.fadeStroke, {
+					_this: _this,
+					val: val
+				})
+			})
+
+			this.cuesLoaded = true
+		}
+
+		this.fadeStroke = function(data){
+			var _this = data._this
+			var type = data.val
+
+			if(type == 'in'){
+				_this.silence = false
+			}else if(type == 'out'){
+				_this.silence = true
+			}
+		}
+
+		this.setMute = function(b) {
+			this.mute = b
+		}
+
+		this.draw = function(x, y) {
+			var rad = this.scaledRad
+
+			this.x = x
+			this.y = y
+
+			this.timeX = - cos(this.rot) * rad / 2
+			this.timeY = - sin(this.rot) * rad / 2
+
+			
+			// Draw it
+			noFill()
+			stroke(getColor())
+			strokeWeight(1)
+
+			if(this.silence){
+				stroke(getColorDimmed())
+			}
+
+			push()
+			translate(x, y)
+			ellipse(0, 0, rad, rad)
+			line(0, 0, this.timeX, this.timeY)
+			pop()
+		}
+
+		this.isInside = function(x, y) {
+			if(dist(this.x, this.y, x, y) < this.getScaledRad()/2) {
+				return true
+			}
+
+			return false
+		}
+
+		this.isLoaded = function() {
+			if(this.soundLoaded && this.cuesLoaded){
+				return true
+			}
+
+			return false
+		}
+
+		this.isSoundLoaded = function(s){
+			if(s != null && s.isLoaded()) {
+				return true
+			}
+
+			return false
+		}
+
+		this.play = function(){
+			//this.sound.loop()
+			this.sound.play()
+		}
+
+		this.setVolume = function(f) {
+			this.volume = f
+		}
+
+		this.getVolume = function() {
+			return this.volume
+		}
+
+		this.getScaledRad = function() {
+			return this.scaledRad
+		}
+
+		this.doFragment = function(){
+			this.playFragment = true
+		}
+	}
+
+	function allLoaded(circles) {
+		var flag = true
+
+		circles.forEach(function(c) {
+			if(!c.isLoaded()) {
+				flag = false
+			}
+		})
+
+		return flag
+	}
+
+	function play(circles) {
+		circles.forEach(function(c) {
+			c.play()
+		})
+	}
+
+	function getColor(opacity = 255) {
+		var clr = CONFIG.SKETCH.COLORS[voice]
+		return color(clr[0], clr[1], clr[2], opacity)
+	}
+
+	function getColorDimmed(initialValue){
+		if(initialValue < 125){
+			return getColor(initialValue)	
+		}
+
+		return getColor(125)
+	}
+}
+
+var sketchAudio = {
+	start: function(){
+		circles.forEach(function(c) {
+			c.sound.play()
+		})
+
+		pause = false
+	},
+
+	pause: function(){
+		circles.forEach(function(c) {
+			c.sound.pause()
+		})
+
+		pause = true
+	},
+
+	stop: function(){
+		circles.forEach(function(c) {
+			c.sound.pause()													// Safari throws an error when calling stop() ...
+		})
+
+		pause = true														// needed to prevent the loop from kicking in and restarting the audio
+	}
+}
+
+
+
+
+/***/ }),
+/* 27 */,
+/* 28 */
+/***/ (function(module, exports, __webpack_require__) {
+
+
+/**
+ * Module dependencies.
+ */
+
+var url = __webpack_require__(29);
+var parser = __webpack_require__(7);
+var Manager = __webpack_require__(16);
 var debug = __webpack_require__(1)('socket.io-client');
 
 /**
@@ -86385,12 +86272,12 @@ exports.connect = lookup;
  * @api public
  */
 
-exports.Manager = __webpack_require__(15);
-exports.Socket = __webpack_require__(20);
+exports.Manager = __webpack_require__(16);
+exports.Socket = __webpack_require__(21);
 
 
 /***/ }),
-/* 28 */
+/* 29 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {
@@ -86398,7 +86285,7 @@ exports.Socket = __webpack_require__(20);
  * Module dependencies.
  */
 
-var parseuri = __webpack_require__(11);
+var parseuri = __webpack_require__(12);
 var debug = __webpack_require__(1)('socket.io-client:url');
 
 /**
@@ -86472,7 +86359,7 @@ function url (uri, loc) {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ (function(module, exports) {
 
 // shim for using process in browser
@@ -86662,7 +86549,7 @@ process.umask = function() { return 0; };
 
 
 /***/ }),
-/* 30 */
+/* 31 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
@@ -86678,7 +86565,7 @@ exports.coerce = coerce;
 exports.disable = disable;
 exports.enable = enable;
 exports.enabled = enabled;
-exports.humanize = __webpack_require__(31);
+exports.humanize = __webpack_require__(32);
 
 /**
  * The currently active debug mode names, and names to skip.
@@ -86870,7 +86757,7 @@ function coerce(val) {
 
 
 /***/ }),
-/* 31 */
+/* 32 */
 /***/ (function(module, exports) {
 
 /**
@@ -87028,7 +86915,7 @@ function plural(ms, n, name) {
 
 
 /***/ }),
-/* 32 */
+/* 33 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {/*global Blob,File*/
@@ -87037,8 +86924,8 @@ function plural(ms, n, name) {
  * Module requirements
  */
 
-var isArray = __webpack_require__(13);
-var isBuf = __webpack_require__(14);
+var isArray = __webpack_require__(14);
+var isBuf = __webpack_require__(15);
 var toString = Object.prototype.toString;
 var withNativeBlob = typeof global.Blob === 'function' || toString.call(global.Blob) === '[object BlobConstructor]';
 var withNativeFile = typeof global.File === 'function' || toString.call(global.File) === '[object FileConstructor]';
@@ -87176,11 +87063,11 @@ exports.removeBlobs = function(data, callback) {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 33 */
+/* 34 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
-module.exports = __webpack_require__(34);
+module.exports = __webpack_require__(35);
 
 /**
  * Exports parser
@@ -87192,19 +87079,19 @@ module.exports.parser = __webpack_require__(3);
 
 
 /***/ }),
-/* 34 */
+/* 35 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {/**
  * Module dependencies.
  */
 
-var transports = __webpack_require__(16);
+var transports = __webpack_require__(17);
 var Emitter = __webpack_require__(2);
 var debug = __webpack_require__(1)('engine.io-client:socket');
-var index = __webpack_require__(19);
+var index = __webpack_require__(20);
 var parser = __webpack_require__(3);
-var parseuri = __webpack_require__(11);
+var parseuri = __webpack_require__(12);
 var parseqs = __webpack_require__(4);
 
 /**
@@ -87338,8 +87225,8 @@ Socket.protocol = parser.protocol; // this is an int
  */
 
 Socket.Socket = Socket;
-Socket.Transport = __webpack_require__(8);
-Socket.transports = __webpack_require__(16);
+Socket.Transport = __webpack_require__(9);
+Socket.transports = __webpack_require__(17);
 Socket.parser = __webpack_require__(3);
 
 /**
@@ -87942,7 +87829,7 @@ Socket.prototype.filterUpgrades = function (upgrades) {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 35 */
+/* 36 */
 /***/ (function(module, exports) {
 
 
@@ -87965,15 +87852,15 @@ try {
 
 
 /***/ }),
-/* 36 */
+/* 37 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {/**
  * Module requirements.
  */
 
-var XMLHttpRequest = __webpack_require__(7);
-var Polling = __webpack_require__(17);
+var XMLHttpRequest = __webpack_require__(8);
+var Polling = __webpack_require__(18);
 var Emitter = __webpack_require__(2);
 var inherit = __webpack_require__(5);
 var debug = __webpack_require__(1)('engine.io-client:polling-xhr');
@@ -88385,7 +88272,7 @@ function unloadHandler () {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 37 */
+/* 38 */
 /***/ (function(module, exports) {
 
 
@@ -88410,7 +88297,7 @@ module.exports = Object.keys || function keys (obj){
 
 
 /***/ }),
-/* 38 */
+/* 39 */
 /***/ (function(module, exports) {
 
 /**
@@ -88445,7 +88332,7 @@ module.exports = function(arraybuffer, start, end) {
 
 
 /***/ }),
-/* 39 */
+/* 40 */
 /***/ (function(module, exports) {
 
 module.exports = after
@@ -88479,7 +88366,7 @@ function noop() {}
 
 
 /***/ }),
-/* 40 */
+/* 41 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(module, global) {var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/utf8js v2.1.2 by @mathias */
@@ -88737,10 +88624,10 @@ function noop() {}
 
 }(this));
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(41)(module), __webpack_require__(0)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(42)(module), __webpack_require__(0)))
 
 /***/ }),
-/* 41 */
+/* 42 */
 /***/ (function(module, exports) {
 
 module.exports = function(module) {
@@ -88768,7 +88655,7 @@ module.exports = function(module) {
 
 
 /***/ }),
-/* 42 */
+/* 43 */
 /***/ (function(module, exports) {
 
 /*
@@ -88841,7 +88728,7 @@ module.exports = function(module) {
 
 
 /***/ }),
-/* 43 */
+/* 44 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {/**
@@ -88944,7 +88831,7 @@ module.exports = (function() {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 44 */
+/* 45 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {
@@ -88952,7 +88839,7 @@ module.exports = (function() {
  * Module requirements.
  */
 
-var Polling = __webpack_require__(17);
+var Polling = __webpack_require__(18);
 var inherit = __webpack_require__(5);
 
 /**
@@ -89182,24 +89069,24 @@ JSONPPolling.prototype.doWrite = function (data, fn) {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 45 */
+/* 46 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {/**
  * Module dependencies.
  */
 
-var Transport = __webpack_require__(8);
+var Transport = __webpack_require__(9);
 var parser = __webpack_require__(3);
 var parseqs = __webpack_require__(4);
 var inherit = __webpack_require__(5);
-var yeast = __webpack_require__(18);
+var yeast = __webpack_require__(19);
 var debug = __webpack_require__(1)('engine.io-client:websocket');
 var BrowserWebSocket = global.WebSocket || global.MozWebSocket;
 var NodeWebSocket;
 if (typeof window === 'undefined') {
   try {
-    NodeWebSocket = __webpack_require__(46);
+    NodeWebSocket = __webpack_require__(47);
   } catch (e) { }
 }
 
@@ -89475,13 +89362,13 @@ WS.prototype.check = function () {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
-/* 46 */
+/* 47 */
 /***/ (function(module, exports) {
 
 /* (ignored) */
 
 /***/ }),
-/* 47 */
+/* 48 */
 /***/ (function(module, exports) {
 
 module.exports = toArray
@@ -89500,7 +89387,7 @@ function toArray(list, index) {
 
 
 /***/ }),
-/* 48 */
+/* 49 */
 /***/ (function(module, exports) {
 
 
@@ -89591,7 +89478,7 @@ Backoff.prototype.setJitter = function(jitter){
 
 
 /***/ }),
-/* 49 */
+/* 50 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_RESULT__;;(function () {
@@ -90437,6 +90324,49 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function () {
 	}
 }());
 
+
+/***/ }),
+/* 51 */,
+/* 52 */,
+/* 53 */,
+/* 54 */,
+/* 55 */,
+/* 56 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["b"] = onCanvas;
+/* harmony export (immutable) */ __webpack_exports__["c"] = scalePercent;
+/* harmony export (immutable) */ __webpack_exports__["a"] = getCanvasDimensions;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_p5__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_p5___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_p5__);
+
+
+const CONFIG = __webpack_require__(11)
+
+function onCanvas(x, y) {
+	if(x >= 0 && x <= width && y >= 0 && y <= height) {
+		return true
+	}
+	
+	return false
+}
+
+function scalePercent() {
+	return (width / CONFIG.SKETCH.MAX_WIDTH)
+}
+
+function getCanvasDimensions() {
+	var w = constrain(windowWidth, 0, CONFIG.SKETCH.MAX_WIDTH)
+	w -= CONFIG.SKETCH.MARGIN															// Having a margin around the canvas
+
+	var h = w * CONFIG.SKETCH.ASPECT_RATIO_HEIGHT
+
+	return {
+		w,
+		h
+	}
+}
 
 /***/ })
 /******/ ]);

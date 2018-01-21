@@ -3,13 +3,10 @@ import 'p5/lib/addons/p5.sound'
 
 const CONFIG = require('./config.js')
 
-var MARGIN_WIDTH = 50
-var MAX_WIDTH = 500 + MARGIN_WIDTH
-var ASPECT_RATIO_HEIGHT = 1.11
-	
+import { onCanvas, scalePercent, getCanvasDimensions } from './sketch.util.js'
+
 var voice = 0
 var pause = true
-
 var circles = []
 
 var myFont = 'Helvetica'
@@ -29,8 +26,6 @@ var sketch = function(socket, callback){
 		var dim = getCanvasDimensions()
 		createCanvas(dim.w, dim.h)
 
-
-		//
 
 		/*
 		socket.on("bang", function(v){
@@ -78,39 +73,6 @@ var sketch = function(socket, callback){
 			var src = '/sound/' + voice + '-' + i +'.mp3'
 			var cueSrc = '/cues/' + voice + '-' + i +'.txt'
 
-			/*
-			loadSound(src, function(sound) {					// async
-
-				if(CONFIG.DEBUG) {
-					console.log("Sound loaded: " + src)
-				}
-
-				circle.setSound(sound)
-
-				loadStrings(cueSrc, function(data){
-					
-					if(CONFIG.DEBUG) {
-						console.log("Cue loaded: " + cueSrc)
-					}
-
-					circle.setCues(data)
-
-					if(allLoaded(circles)) {
-						if(CONFIG.DEBUG) {
-							console.log("All loaded")
-						}
-
-						// when ALL is loaded, make the front-end button active!
-
-						callback()
-					}
-				})
-			}, function(){
-				console.log('error while loading: ' + src )
-			})
-			*/
-
-
 			loadCircle(src, cueSrc)
 
 			function loadCircle(src, cueSrc){
@@ -150,25 +112,8 @@ var sketch = function(socket, callback){
 					loadCircle(src, cueSrc)
 				})
 			}
-
-
-
-			/*
-			circle.setFragments(4)
-
-			for(var i = 0; i < 4; i++){
-				var index = i + 1
-				var fragmentSrc = '/sound/extra' + index +'.mp3'
-				let _i = i
-
-				loadSound(fragmentSrc, function(sound){
-					circle.addFragment(sound, _i)
-				})
-			}
-			*/
-
-
 		})	
+
 	}
 
 	window.draw = function() {
@@ -348,14 +293,6 @@ var sketch = function(socket, callback){
 		})
 	}
 
-	function onCanvas(x, y) {
-		if(x >= 0 && x <= width && y >= 0 && y <= height) {
-			return true
-		}
-		
-		return false
-	}
-
 	function Circle(id, rad, acc) {	
 		this.id = id
 		this.rad = rad
@@ -375,14 +312,13 @@ var sketch = function(socket, callback){
 		this.mute = true
 		this.silence = true
 
-		this.fragments = []
-		this.fragment = null
 		this.playFragment = false
 
 		this.inside = false
 
 		this.scaledRad = rad * scalePercent()
 
+		this.soundLoaded = false
 		this.cuesLoaded = false
 	  
 		this.update = function(x, y) {
@@ -396,22 +332,15 @@ var sketch = function(socket, callback){
 			if(this.isLoaded()) {
 				if(this.mute) {
 					this.sound.setVolume(0)
-
-					if(this.isSoundLoaded(this.fragment)){
-						this.fragment.setVolume(0)
-					}
 				}else{
 					this.sound.setVolume(this.volume)
-
-					if(this.isSoundLoaded(this.fragment)){
-						this.fragment.setVolume(this.volume)
-					}
 				}
 			}
 		}
 
 		this.setSound = function(_sound) {			
 			this.sound = _sound
+			this.soundLoaded = true
 
 			/*
 			 * IMPORTANT
@@ -428,33 +357,8 @@ var sketch = function(socket, callback){
 
 				//console.log('Circle #' + this.id + ' ended')
 
-				// play a fragment if is being set by the master node clock
-
-				/*
-				if(_this.fragments.length > 0 && _this.playFragment) {
-
-					var fragmentIndex = int(random(_this.fragments.length))
-					var fragment = _this.fragments[ fragmentIndex ]
-
-					_this.fragment = fragment
-
-					if(this.mute) {
-						fragment.setVolume(0)
-					}else{
-						fragment.setVolume(this.volume)
-					}
-
-					_this.playFragment = false
-
-					fragment.play()
-				}
-				*/
-
 				this.play()
-				//console.log('Circle #' + this.id + ' looped')
 			})
-			
-
 		}
 
 		this.setCues = function(data){
@@ -525,7 +429,7 @@ var sketch = function(socket, callback){
 		}
 
 		this.isLoaded = function() {
-			if(this.isSoundLoaded(this.sound) && this.cuesLoaded){
+			if(this.soundLoaded && this.cuesLoaded){
 				return true
 			}
 
@@ -538,14 +442,6 @@ var sketch = function(socket, callback){
 			}
 
 			return false
-		}
-
-		this.setFragments = function(len){
-			this.fragments = [len]
-		}
-
-		this.addFragment = function(sound, i){
-			this.fragments[i] = sound
 		}
 
 		this.play = function(){
@@ -570,22 +466,6 @@ var sketch = function(socket, callback){
 		}
 	}
 
-	function getCanvasDimensions() {
-		var w = constrain(windowWidth, 0, MAX_WIDTH)
-		w -= MARGIN_WIDTH									// Having a margin around the canvas
-
-		var h = w * ASPECT_RATIO_HEIGHT
-
-		return {
-			w,
-			h
-		}
-	}
-
-	function scalePercent() {
-		return (width / MAX_WIDTH)
-	}
-
 	function allLoaded(circles) {
 		var flag = true
 
@@ -605,7 +485,7 @@ var sketch = function(socket, callback){
 	}
 
 	function getColor(opacity = 255) {
-		var clr = CONFIG.COLORS[voice]
+		var clr = CONFIG.SKETCH.COLORS[voice]
 		return color(clr[0], clr[1], clr[2], opacity)
 	}
 
@@ -618,29 +498,34 @@ var sketch = function(socket, callback){
 	}
 }
 
-var startAudio = function(){
-	circles.forEach(function(c) {
-		//c.sound.jump()												// jump to the beginning of each soundfile
-		c.sound.play()													// resume playing from where they are
-	})
+var sketchAudio = {
+	start: function(){
+		circles.forEach(function(c) {
+			c.sound.play()
+		})
 
-	pause = false
+		pause = false
+	},
+
+	pause: function(){
+		circles.forEach(function(c) {
+			c.sound.pause()
+		})
+
+		pause = true
+	},
+
+	stop: function(){
+		circles.forEach(function(c) {
+			c.sound.pause()													// Safari throws an error when calling stop() ...
+		})
+
+		pause = true														// needed to prevent the loop from kicking in and restarting the audio
+	}
 }
 
-var pauseAudio = function(){
-	pause = true
 
-	circles.forEach(function(c) {
-		c.sound.pause()													// resume playing from where they are
-	})
+export {
+	sketch,
+	sketchAudio
 }
-
-var stopAudio = function(){
-	pause = true														// needed to prevent the loop from kicking in
-
-	circles.forEach(function(c) {
-		c.sound.pause()													// Safari throws an error when calling stop() ...
-	})
-}
-
-export { sketch, startAudio, stopAudio, pauseAudio }
