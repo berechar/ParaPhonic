@@ -1,6 +1,6 @@
 import io from 'socket.io-client'
 import './main.scss'
-import { sketch, sketchAudio } from './sketch'
+import Sketch from './sketch'
 
 var CONFIG = require('./config.js')
 
@@ -22,7 +22,7 @@ var button = document.getElementById('enter')
  *
  */
 
-sketch(socket, callbackFromSketch)
+var sketch = Sketch(socket, callbackFromSketch)
 
 
 socket.on('connect', function() {
@@ -39,7 +39,7 @@ socket.on('disconnect', function() {
 		console.log('Disconnected from server (shutdown sounds if any)')
 	}
 
-	sketchAudio.stop()
+	sketch.stop()
 })
 
 socket.on("boot", function(user) {
@@ -62,7 +62,6 @@ socket.on("boot", function(user) {
 	// load the sketch with data
 
 	window.loadSketch(user)
-
 
 	// update document style
 	
@@ -222,7 +221,7 @@ var backEvent = function(e){
 
 	// Stop the audio from playing
 
-	sketchAudio.pause()
+	sketch.pause()
 } 
 
 function startSketch(e, fn){
@@ -243,7 +242,7 @@ function startSketch(e, fn){
 	// the sketch is by default paused to prevent sound from home
 	// and start the audio files from the beginning
 
-	sketchAudio.start()
+	sketch.start()
 
 	// updateCounterLabel()	
 }
@@ -263,7 +262,7 @@ function orientationEvents() {
 		 		}
 
 		 		if(active) {
-		 			sketchAudio.pause()
+		 			sketch.pause()
 		 		}
 
 		 	}else if(screenOrientation == 90) {													// portrait
@@ -272,7 +271,7 @@ function orientationEvents() {
 		 		}
 
 		 		if(active) {
-		 			sketchAudio.start()
+		 			sketch.start()
 		 		}
 		 	}
 		 }

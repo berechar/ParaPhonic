@@ -29,6 +29,6 @@ module.exports = {
 		new ExtractTextPlugin({
 			filename: 'main.css'
 		}),
-		new UglifyJSPlugin()
+		//new UglifyJSPlugin()
 	]
 }

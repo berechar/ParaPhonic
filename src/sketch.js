@@ -5,14 +5,15 @@ const CONFIG = require('./config.js')
 
 import { onCanvas, scalePercent, getCanvasDimensions } from './sketch.util.js'
 
-var voice = 0
-var pause = true
-var circles = []
+export default function(socket, callback){
+	var voice = 0
+	var color = []
+	var pause = true
+	var circles = []
 
-var myFont = 'Helvetica'
-var fontSize = 36
+	var myFont = 'Helvetica'
+	var fontSize = 36
 
-var sketch = function(socket, callback){
 	window.preload = function() {
 		soundFormats('mp3')
 	}
@@ -345,12 +346,13 @@ var sketch = function(socket, callback){
 			/*
 			 * IMPORTANT
 			 *
-			 *  this function is also called when you start from the beginning!
+			 *  this function is also called when you start it from the beginning!
 			 *
 			 *
 			 */
 			
 			this.sound.onended(() => {
+
 				if(pause){
 					return false
 				}
@@ -358,6 +360,7 @@ var sketch = function(socket, callback){
 				//console.log('Circle #' + this.id + ' ended')
 
 				this.play()
+				
 			})
 		}
 
@@ -496,36 +499,33 @@ var sketch = function(socket, callback){
 
 		return getColor(125)
 	}
-}
 
-var sketchAudio = {
-	start: function(){
-		circles.forEach(function(c) {
-			c.sound.play()
-		})
 
-		pause = false
-	},
+	// return some controls
 
-	pause: function(){
-		circles.forEach(function(c) {
-			c.sound.pause()
-		})
+	return {
+		start: function(){
+			circles.forEach(function(c) {
+				c.sound.play()
+			})
 
-		pause = true
-	},
+			pause = false
+		},
 
-	stop: function(){
-		circles.forEach(function(c) {
-			c.sound.pause()													// Safari throws an error when calling stop() ...
-		})
+		pause: function(){
+			circles.forEach(function(c) {
+				c.sound.pause()
+			})
 
-		pause = true														// needed to prevent the loop from kicking in and restarting the audio
+			pause = true
+		},
+
+		stop: function(){
+			circles.forEach(function(c) {
+				c.sound.pause()													// Safari throws an error when calling stop() ...
+			})
+
+			pause = true														// needed to prevent the loop from kicking in and restarting the audio
+		}
 	}
-}
-
-
-export {
-	sketch,
-	sketchAudio
 }
