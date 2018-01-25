@@ -1,4 +1,0 @@
-#!/bin/bash
-
-echo "SSHing into Pi..."
-ssh -i ~/.ssh/id_rpi_polydiso someone@192.168.42.1

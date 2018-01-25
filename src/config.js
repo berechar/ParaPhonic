@@ -1,9 +1,10 @@
 module.exports = {
-	ENV: 						'dev',					// 'dev' or 'production'
+	ENV: 						'production',					// 'dev' or 'production'
 	WEMOS_ADDRESS: 				'http://192.168.42.101',		// WeMos ip address for sending GET requests to control electronics
 	DEBUG: 						true,
-	SKIP_PANDA: 				true,							// while doing production but not wanting to deal with pyropanda
-	INFINITE_MOTORS: 			true,							// if [true], boot system with infinite rotating motors
+	SKIP_PANDA: 				false,							// while doing production but not wanting to deal with pyropanda
+	INFINITE_MOTORS: 			false,							// if [true], boot system with infinite rotating motors
+	MOTORS: 					true,							// if [true], motors will be active when users are connected
 
 	PING_INTERVAL: 				5000,							// time (ms) for doing an interval request to Pyropanda
 	PING_TIMEOUT: 				5000,							// time (ms) for timeout before sending the default settings to PyroPanda after a successfull ping

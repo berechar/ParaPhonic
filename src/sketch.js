@@ -7,7 +7,6 @@ import { onCanvas, scalePercent, getCanvasDimensions } from './sketch.util.js'
 
 export default function(socket, callback){
 	var voice = 0
-	var color = []
 	var pause = true
 	var circles = []
 

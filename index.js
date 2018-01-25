@@ -18,7 +18,13 @@ const CONFIG = require('./src/config.js'),
 
 var voices = Array(CONFIG.MAX_VOICES).fill(0)
 var users = {}
+var total_connections = 0
 var total_singers = 0
+
+
+var second = 1000
+var time = second * 60
+var refreshRate = time - second
 
 
 
@@ -155,10 +161,6 @@ function connectIO_defaultSettings(){
 		return false
 	}
 
-	var second = 1000
-	var time = second * 60
-	var refreshRate = time - second
-
 	// first spin
 	runMotorsInifinitly()
 
@@ -286,6 +288,10 @@ function connect(socket, id){
 	// update server variables
 
 	voices[voice]++
+
+	total_connections++
+
+	updateMotors()
 }
 
 function disconnect(users, id){
@@ -297,6 +303,8 @@ function disconnect(users, id){
 	// update server variables
 
 	voices[user.voice]--
+
+	total_connections--
 
 
 	// if the user was singing (thus active), decrement the total_singers and update every active indices
@@ -322,6 +330,8 @@ function disconnect(users, id){
 	// and update the colors
 
 	updatePyroPanda()
+
+	updateMotors()
 }
 
 function leaveTheChoir(user) {
@@ -460,6 +470,68 @@ function updatePyroPanda(color) {
 
 			clocks.addInterval(interval)
 		}, time)
+
+	}
+}
+
+
+
+/**
+ * Update the Motors on every connect/disconnect event
+ *
+ */
+
+var updateMotors = buildMotorInterval()
+
+function buildMotorInterval(){		
+	var motor1_interval;			// tall (1 or more)
+	var motor2_interval;			// short (2 or more)
+	
+	time = second * 10				// shorter sequence, 10secs (always be kind to WeMos PyroPanda)
+	refreshRate = time - 1
+
+	return function(){
+		if(CONFIG.MOTORS) {
+
+			// clear intervals
+
+			clearInterval(motor1_interval);
+			clearInterval(motor2_interval);
+
+			if(CONFIG.DEBUG) {
+				console.log('Cleared intervals')
+			}
+
+			// new intervals
+
+			if(total_connections >= 1){									// TALL MOTOR
+
+				if(CONFIG.DEBUG) {
+					console.log('Started motor1_interval')
+				}
+
+				motor1_interval = setInterval(function(){
+					if(CONFIG.DEBUG) {
+						console.log('Run motor1 for ' + time + 'ms')
+					}
+
+					pyropanda.motor1(time)
+
+				}, refreshRate)
+			}
+
+			if(total_connections >= 2){									// SHORT MOTOR
+
+				motor2_interval = setInterval(function(){
+					if(CONFIG.DEBUG) {
+						console.log('Run motor2 for ' + time + 'ms;')
+					}
+
+					pyropanda.motor2(time)
+
+				}, refreshRate)
+			}
+		}
 
 	}
 }
