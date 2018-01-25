@@ -1,7 +1,7 @@
 module.exports = {
 	ENV: 						'production',					// 'dev' or 'production'
 	WEMOS_ADDRESS: 				'http://192.168.42.101',		// WeMos ip address for sending GET requests to control electronics
-	DEBUG: 						true,
+	DEBUG: 						false,
 	SKIP_PANDA: 				false,							// while doing production but not wanting to deal with pyropanda
 	INFINITE_MOTORS: 			false,							// if [true], boot system with infinite rotating motors
 	MOTORS: 					true,							// if [true], motors will be active when users are connected

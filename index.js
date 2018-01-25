@@ -488,7 +488,7 @@ function buildMotorInterval(){
 	var motor2_interval;			// short (2 or more)
 	
 	time = second * 10				// shorter sequence, 10secs (always be kind to WeMos PyroPanda)
-	refreshRate = time - 1
+	refreshRate = time - 3
 
 	return function(){
 		if(CONFIG.MOTORS) {
