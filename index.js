@@ -507,27 +507,31 @@ function buildMotorInterval(){
 			if(total_connections >= 1){									// TALL MOTOR
 
 				if(CONFIG.DEBUG) {
-					console.log('Started motor1_interval')
+					console.log('Started motor2_interval')
 				}
 
-				motor1_interval = setInterval(function(){
+				motor2_interval = setInterval(function(){
 					if(CONFIG.DEBUG) {
-						console.log('Run motor1 for ' + time + 'ms')
+						console.log('Run motor2 for ' + time + 'ms')
 					}
 
-					pyropanda.motor1(time)
+					pyropanda.motor2(time)
 
 				}, refreshRate)
 			}
 
 			if(total_connections >= 2){									// SHORT MOTOR
 
-				motor2_interval = setInterval(function(){
+				if(CONFIG.DEBUG) {
+					console.log('Started motor1_interval')
+				}
+
+				motor1_interval = setInterval(function(){
 					if(CONFIG.DEBUG) {
-						console.log('Run motor2 for ' + time + 'ms;')
+						console.log('Run motor1 for ' + time + 'ms;')
 					}
 
-					pyropanda.motor2(time)
+					pyropanda.motor1(time)
 
 				}, refreshRate)
 			}
